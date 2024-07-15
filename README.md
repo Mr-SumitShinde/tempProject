@@ -1,41 +1,97 @@
-import React, { createContext, useState, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-// Create a context for the fetch service
-const FetchContext = createContext();
+interface FetchResponse {
+  data: any;
+  status: number;
+}
 
-export const FetchProvider = ({ children }) => {
-  const [controller, setController] = useState(null);
+interface FetchError {
+  error: any;
+  status: number;
+}
 
-  const fetchService = useCallback(async (url, onResponse, onError) => {
-    const abortController = new AbortController();
-    setController(abortController);
+interface ServiceProviderProps {
+  children: ReactNode;
+}
+
+interface ServiceContextProps {
+  fetchService: (
+    url: string,
+    method?: string,
+    body?: any,
+    headers?: HeadersInit
+  ) => void;
+  interrupt: () => void;
+  responseCallback?: (response: FetchResponse) => void;
+  errorCallback?: (error: FetchError) => void;
+  setResponseCallback: (callback: (response: FetchResponse) => void) => void;
+  setErrorCallback: (callback: (error: FetchError) => void) => void;
+}
+
+const ServiceContext = createContext<ServiceContextProps | undefined>(undefined);
+
+export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children }) => {
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [responseCallback, setResponseCallback] = useState<(response: FetchResponse) => void>();
+  const [errorCallback, setErrorCallback] = useState<(error: FetchError) => void>();
+
+  const fetchService = async (
+    url: string,
+    method: string = 'GET',
+    body?: any,
+    headers: HeadersInit = { 'Content-Type': 'application/json' }
+  ) => {
+    const controller = new AbortController();
+    setAbortController(controller);
 
     try {
-      const response = await fetch(url, { signal: abortController.signal });
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal
+      });
       const data = await response.json();
-      onResponse(data);
+      if (response.ok) {
+        responseCallback && responseCallback({ data, status: response.status });
+      } else {
+        errorCallback && errorCallback({ error: data, status: response.status });
+      }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        onError(error);
+      if (error.name === 'AbortError') {
+        console.log('Fetch aborted');
+      } else {
+        errorCallback && errorCallback({ error, status: 500 });
       }
     } finally {
-      setController(null);
+      setAbortController(null);
     }
-  }, []);
+  };
 
-  const cancelFetch = useCallback(() => {
-    if (controller) {
-      controller.abort();
-    }
-  }, [controller]);
+  const interrupt = () => {
+    abortController && abortController.abort();
+  };
 
   return (
-    <FetchContext.Provider value={{ fetchService, cancelFetch }}>
+    <ServiceContext.Provider
+      value={{
+        fetchService,
+        interrupt,
+        responseCallback,
+        errorCallback,
+        setResponseCallback,
+        setErrorCallback,
+      }}
+    >
       {children}
-    </FetchContext.Provider>
+    </ServiceContext.Provider>
   );
 };
 
-export const useFetch = () => {
-  return useContext(FetchContext);
+export const useService = (): ServiceContextProps => {
+  const context = useContext(ServiceContext);
+  if (!context) {
+    throw new Error('useService must be used within a ServiceProvider');
+  }
+  return context;
 };
