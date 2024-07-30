@@ -55,3 +55,14 @@ export class GenericService<T> implements IService<T> {
         }
     }
 }
+
+
+// IService.ts
+export interface IService<T> {
+    getAll(callback: (data: T[]) => void, errorCallback: (error: any) => void): void;
+    getById(id: string, callback: (data: T) => void, errorCallback: (error: any) => void): void;
+    create(item: T, callback: (data: T) => void, errorCallback: (error: any) => void): void;
+    update(id: string, item: T, callback: (data: T) => void, errorCallback: (error: any) => void): void;
+    delete(id: string, callback: () => void, errorCallback: (error: any) => void): void;
+    interrupt(): void;
+}
