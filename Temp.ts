@@ -1,68 +1,69 @@
-//Hi
-// GenericService.ts
-import { IService } from './IService';
+// genericServiceProvider.ts
 
-export class GenericService<T> implements IService<T> {
-    private controller: AbortController | null = null;
+type FetchOptions = {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  headers?: HeadersInit;
+  body?: any;
+};
 
-    async fetchWithCallbacks(url: string, options: RequestInit, callback: (data: any) => void, errorCallback: (error: any) => void): Promise<void> {
-        this.controller = new AbortController();
-        const signal = this.controller.signal;
+type FetchCallbacks<T> = {
+  onSuccess: (data: T) => void;
+  onError: (error: any) => void;
+  onInterrupt?: () => void;
+};
 
-        try {
-            const response = await fetch(url, { ...options, signal });
-            if (!response.ok) throw new Error(`Error: ${response.statusText}`);
-            const data = await response.json();
-            callback(data);
-        } catch (error) {
-            if (error.name !== 'AbortError') {
-                errorCallback(error);
-            }
-        }
+class GenericServiceProvider {
+  private abortControllers: Map<string, AbortController>;
+
+  constructor() {
+    this.abortControllers = new Map();
+  }
+
+  private createAbortController(key: string): AbortController {
+    const abortController = new AbortController();
+    this.abortControllers.set(key, abortController);
+    return abortController;
+  }
+
+  private removeAbortController(key: string): void {
+    this.abortControllers.delete(key);
+  }
+
+  public async fetchService<T>(
+    url: string,
+    options: FetchOptions,
+    callbacks: FetchCallbacks<T>,
+    interruptKey?: string
+  ): Promise<void> {
+    const controller = interruptKey ? this.createAbortController(interruptKey) : new AbortController();
+    const { signal } = controller;
+
+    try {
+      const response = await fetch(url, { ...options, signal });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: T = await response.json();
+      callbacks.onSuccess(data);
+    } catch (error) {
+      if (signal.aborted) {
+        callbacks.onInterrupt?.();
+      } else {
+        callbacks.onError(error);
+      }
+    } finally {
+      if (interruptKey) {
+        this.removeAbortController(interruptKey);
+      }
     }
+  }
 
-    getAll(callback: (data: T[]) => void, errorCallback: (error: any) => void): void {
-        this.fetchWithCallbacks('/api/items', { method: 'GET' }, callback, errorCallback);
+  public interruptFetch(key: string): void {
+    const controller = this.abortControllers.get(key);
+    if (controller) {
+      controller.abort();
     }
-
-    getById(id: string, callback: (data: T) => void, errorCallback: (error: any) => void): void {
-        this.fetchWithCallbacks(`/api/items/${id}`, { method: 'GET' }, callback, errorCallback);
-    }
-
-    create(item: T, callback: (data: T) => void, errorCallback: (error: any) => void): void {
-        this.fetchWithCallbacks('/api/items', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item)
-        }, callback, errorCallback);
-    }
-
-    update(id: string, item: T, callback: (data: T) => void, errorCallback: (error: any) => void): void {
-        this.fetchWithCallbacks(`/api/items/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item)
-        }, callback, errorCallback);
-    }
-
-    delete(id: string, callback: () => void, errorCallback: (error: any) => void): void {
-        this.fetchWithCallbacks(`/api/items/${id}`, { method: 'DELETE' }, callback, errorCallback);
-    }
-
-    interrupt(): void {
-        if (this.controller) {
-            this.controller.abort();
-        }
-    }
+  }
 }
 
-
-// IService.ts
-export interface IService<T> {
-    getAll(callback: (data: T[]) => void, errorCallback: (error: any) => void): void;
-    getById(id: string, callback: (data: T) => void, errorCallback: (error: any) => void): void;
-    create(item: T, callback: (data: T) => void, errorCallback: (error: any) => void): void;
-    update(id: string, item: T, callback: (data: T) => void, errorCallback: (error: any) => void): void;
-    delete(id: string, callback: () => void, errorCallback: (error: any) => void): void;
-    interrupt(): void;
-}
+export default GenericServiceProvider;
