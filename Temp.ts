@@ -1,50 +1,95 @@
+// genericServiceProvider.test.ts
 import GenericServiceProvider from './genericServiceProvider';
 
-const systemLoader = (window as any).System;
+global.fetch = jest.fn();
 
-/* Single SPA load function */
+describe('GenericServiceProvider', () => {
+  let serviceProvider: GenericServiceProvider;
 
-export const loadApp = (url: string, appName: string) => async () => {
-  const manifestUrl = url + '/manifest.json';
-  let mainJS;
+  beforeEach(() => {
+    serviceProvider = new GenericServiceProvider();
+    (fetch as jest.Mock).mockClear();
+  });
 
-  const getFilename = (data) => {
-    const fileobj = data?.files?.scripts?.find((script: any) => script.fileName && script.fileName.indexOf('main') !== -1);
-    return fileobj?.fileName;
-  };
+  it('should fetch data successfully', async () => {
+    const mockData = { data: 'test' };
+    (fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => mockData,
+    });
 
-  const sessionBuildIntData = window.sessionStorage.getItem('manifestData');
-  const data = sessionBuildIntData && JSON.parse(sessionBuildIntData)[appName];
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
 
-  const serviceProvider = new GenericServiceProvider();
-
-  if (data) {
-    mainJS = `${url}/${getFilename(data)}`;
-  } else {
     await serviceProvider.fetchService<any>(
-      manifestUrl,
-      { method: 'GET', headers: { 'Cache-Control': 'no-cache' } },
-      {
-        onSuccess: (data) => {
-          const intData = sessionBuildIntData ? JSON.parse(sessionBuildIntData) : {};
-          intData[appName] = data;
-          intData[appName]['description'] = url;
-          window.sessionStorage.setItem('manifestData', JSON.stringify(intData));
-          mainJS = `${url}/${getFilename(data)}`;
-        },
-        onError: (err) => {
-          console.error('Error in fetching data', err);
-          mainJS = '';
-        }
-      }
+      'https://api.example.com/data',
+      { method: 'GET' },
+      { onSuccess, onError }
     );
-  }
 
-  const app = await systemLoader?.import(mainJS);
+    expect(onSuccess).toHaveBeenCalledWith(mockData);
+    expect(onError).not.toHaveBeenCalled();
+  });
 
-  if (app?.useDefault) {
-    return app.default;
-  } else {
-    return app;
-  }
-};
+  it('should handle fetch error', async () => {
+    const mockError = new Error('Fetch error');
+    (fetch as jest.Mock).mockRejectedValue(mockError);
+
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+
+    await serviceProvider.fetchService<any>(
+      'https://api.example.com/data',
+      { method: 'GET' },
+      { onSuccess, onError }
+    );
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(mockError);
+  });
+
+  it('should handle HTTP error response', async () => {
+    (fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 404,
+    });
+
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+
+    await serviceProvider.fetchService<any>(
+      'https://api.example.com/data',
+      { method: 'GET' },
+      { onSuccess, onError }
+    );
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(new Error('HTTP error! status: 404'));
+  });
+
+  it('should interrupt fetch request', async () => {
+    const mockAbortError = new DOMException('The user aborted a request.', 'AbortError');
+    (fetch as jest.Mock).mockImplementation(
+      () => new Promise((_, reject) => setTimeout(() => reject(mockAbortError), 100))
+    );
+
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const onInterrupt = jest.fn();
+
+    serviceProvider.fetchService<any>(
+      'https://api.example.com/data',
+      { method: 'GET' },
+      { onSuccess, onError, onInterrupt },
+      'testInterruptKey'
+    );
+
+    serviceProvider.interruptFetch('testInterruptKey');
+
+    await new Promise((r) => setTimeout(r, 150)); // wait for the fetch to be rejected
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(onInterrupt).toHaveBeenCalled();
+  });
+});
