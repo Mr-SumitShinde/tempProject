@@ -67,3 +67,42 @@ class GenericServiceProvider {
 }
 
 export default GenericServiceProvider;
+
+import React, { useEffect } from 'react';
+import GenericServiceProvider from './genericServiceProvider';
+
+const MyComponent: React.FC = () => {
+  const serviceProvider = new GenericServiceProvider();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await serviceProvider.fetchService<any>(
+        'https://api.example.com/data',
+        { method: 'GET' },
+        {
+          onSuccess: (data) => {
+            console.log('Data fetched successfully:', data);
+          },
+          onError: (error) => {
+            console.error('Error fetching data:', error);
+          },
+          onInterrupt: () => {
+            console.log('Fetch request interrupted.');
+          }
+        },
+        'fetchDataKey'
+      );
+    };
+
+    fetchData();
+
+    return () => {
+      serviceProvider.interruptFetch('fetchDataKey');
+    };
+  }, [serviceProvider]);
+
+  return <div>My Component</div>;
+};
+
+export default MyComponent;
+
