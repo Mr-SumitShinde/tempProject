@@ -1,53 +1,80 @@
 import GenericServiceProvider from './path-to-your-service-provider';
 
-const systemLoader = (window as any).System;
+describe('GenericServiceProvider', () => {
+  let serviceProvider: GenericServiceProvider;
 
-/* Single SPA load function */
+  beforeEach(() => {
+    serviceProvider = new GenericServiceProvider();
+  });
 
-export const loadApp = (url: string, appName: string) => async () => {
-  const manifestUrl = url + '/manifest.json';
-  let mainJS: string | undefined;
+  it('should call onSuccess callback with data when fetch is successful', async () => {
+    const mockData = { key: 'value' };
+    const mockResponse = {
+      ok: true,
+      json: jest.fn().mockResolvedValue(mockData),
+    };
+    global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
-  const getFilename = (data: any) => {
-    const fileObj = data?.files?.scripts?.find((script: any) => script.fileName && script.fileName.indexOf('main') !== -1);
-    return fileObj?.fileName;
-  };
+    const options = { method: 'GET' as 'GET' };
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const callbacks = { onSuccess, onError };
 
-  const sessionBuildIntData = window.sessionStorage.getItem('manifestData');
-  const data = sessionBuildIntData && JSON.parse(sessionBuildIntData)[appName];
+    await serviceProvider.fetchService('mock-url', options, callbacks);
 
-  if (data) {
-    mainJS = `${url}/${getFilename(data)}`;
-  } else {
-    const serviceProvider = new GenericServiceProvider();
-    const options = { method: 'GET', headers: { 'Cache-Control': 'no-cache' } };
+    expect(onSuccess).toHaveBeenCalledWith(mockData);
+    expect(onError).not.toHaveBeenCalled();
+  });
 
-    mainJS = await new Promise<string | void>((resolve) => {
-      serviceProvider.fetchService(
-        manifestUrl,
-        options,
-        {
-          onSuccess: (data: any) => {
-            const intData = sessionBuildIntData ? JSON.parse(sessionBuildIntData) : {};
-            intData[appName] = data;
-            intData[appName]['description'] = url;
-            window.sessionStorage.setItem('manifestData', JSON.stringify(intData));
-            resolve(`${url}/${getFilename(data)}`);
-          },
-          onError: (error: any) => {
-            console.error('Error in fetching data', error);
-            resolve();
-          }
-        }
-      );
-    });
-  }
+  it('should call onError callback with error when fetch fails', async () => {
+    const mockError = new Error('Fetch error');
+    global.fetch = jest.fn().mockRejectedValue(mockError);
 
-  const app = await systemLoader?.import(mainJS);
-  
-  if (app?.useDefault) {
-    return app.default;
-  } else {
-    return app;
-  }
-};
+    const options = { method: 'GET' as 'GET' };
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const callbacks = { onSuccess, onError };
+
+    await serviceProvider.fetchService('mock-url', options, callbacks);
+
+    expect(onError).toHaveBeenCalledWith(mockError);
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('should call onError callback with HTTP error when response is not ok', async () => {
+    const mockResponse = {
+      ok: false,
+      status: 404,
+      json: jest.fn(),
+    };
+    global.fetch = jest.fn().mockResolvedValue(mockResponse);
+
+    const options = { method: 'GET' as 'GET' };
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const callbacks = { onSuccess, onError };
+
+    await serviceProvider.fetchService('mock-url', options, callbacks);
+
+    expect(onError).toHaveBeenCalledWith(new Error('HTTP error! status: 404'));
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('should call onError callback with a JSON parsing error', async () => {
+    const mockResponse = {
+      ok: true,
+      json: jest.fn().mockRejectedValue(new Error('JSON parsing error')),
+    };
+    global.fetch = jest.fn().mockResolvedValue(mockResponse);
+
+    const options = { method: 'GET' as 'GET' };
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const callbacks = { onSuccess, onError };
+
+    await serviceProvider.fetchService('mock-url', options, callbacks);
+
+    expect(onError).toHaveBeenCalledWith(new Error('JSON parsing error'));
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+});
