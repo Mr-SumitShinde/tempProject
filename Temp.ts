@@ -1,65 +1,33 @@
-import GenericServiceProvider from './path-to-your-service-provider';
+type FetchOptions = {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  headers?: HeadersInit;
+  body?: any;
+};
 
-describe('GenericServiceProvider', () => {
-  let serviceProvider: GenericServiceProvider;
+type FetchCallbacks<T> = {
+  onSuccess: (data: T) => void;
+  onError: (error: any) => void;
+};
 
-  beforeEach(() => {
-    serviceProvider = new GenericServiceProvider();
-  });
+class GenericServiceProvider {
+  constructor() {}
 
-  it('should call onSuccess callback with data when fetch is successful', async () => {
-    const mockData = { key: 'value' };
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue(mockData),
-    };
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
+  public async fetchService<T>(
+    url: string,
+    options: FetchOptions,
+    callbacks: FetchCallbacks<T>
+  ): Promise<void> {
+    try {
+      const response = await fetch(url, { ...options });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: T = await response.json();
+      callbacks.onSuccess(data);
+    } catch (error) {
+      callbacks.onError(error);
+    }
+  }
+}
 
-    const url = 'https://api.example.com/data';
-    const options = { method: 'GET' };
-    const onSuccess = jest.fn();
-    const onError = jest.fn();
-    const callbacks = { onSuccess, onError };
-
-    await serviceProvider.fetchService(url, options, callbacks);
-
-    expect(onSuccess).toHaveBeenCalledWith(mockData);
-    expect(onError).not.toHaveBeenCalled();
-  });
-
-  it('should call onError callback with error when fetch fails', async () => {
-    const mockError = new Error('Fetch error');
-    global.fetch = jest.fn().mockRejectedValue(mockError);
-
-    const url = 'https://api.example.com/data';
-    const options = { method: 'GET' };
-    const onSuccess = jest.fn();
-    const onError = jest.fn();
-    const callbacks = { onSuccess, onError };
-
-    await serviceProvider.fetchService(url, options, callbacks);
-
-    expect(onError).toHaveBeenCalledWith(mockError);
-    expect(onSuccess).not.toHaveBeenCalled();
-  });
-
-  it('should call onError callback with HTTP error when response is not ok', async () => {
-    const mockResponse = {
-      ok: false,
-      status: 404,
-      json: jest.fn(),
-    };
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
-
-    const url = 'https://api.example.com/data';
-    const options = { method: 'GET' };
-    const onSuccess = jest.fn();
-    const onError = jest.fn();
-    const callbacks = { onSuccess, onError };
-
-    await serviceProvider.fetchService(url, options, callbacks);
-
-    expect(onError).toHaveBeenCalledWith(new Error('HTTP error! status: 404'));
-    expect(onSuccess).not.toHaveBeenCalled();
-  });
-});
+export default GenericServiceProvider;
