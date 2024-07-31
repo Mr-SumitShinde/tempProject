@@ -1,58 +1,77 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import { ConfigProvider, useConfig } from './ConfigProvider';
 
-interface ConfigData {
-  theme: string;
-  language: string;
-  // Add more configuration properties as needed
-}
-
-interface ConfigContextValue {
-  configData: ConfigData | null;
-  loading: boolean;
-  error: string | null;
-}
-
-const ConfigContext = createContext<ConfigContextValue | undefined>(undefined);
-
-export const useConfig = (): ConfigContextValue => {
-  const context = useContext(ConfigContext);
-  if (context === undefined) {
-    throw new Error('useConfig must be used within a ConfigProvider');
-  }
-  return context;
+const mockConfigData = {
+  theme: 'dark',
+  language: 'en',
 };
 
-interface ConfigProviderProps {
-  children: ReactNode;
-}
+const mockFetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve(mockConfigData),
+  })
+);
 
-export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
-  const [configData, setConfigData] = useState<ConfigData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+global.fetch = mockFetch;
 
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const response = await fetch('/api/config'); // Replace with your API endpoint
-        if (!response.ok) {
-          throw new Error('Failed to fetch config data');
-        }
-        const data: ConfigData = await response.json();
-        setConfigData(data);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
+const TestComponent: React.FC = () => {
+  const { configData, loading, error } = useConfig();
 
-    fetchConfig();
-  }, []);
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  if (error) {
+    return <p>Error: {error}</p>;
+  }
 
   return (
-    <ConfigContext.Provider value={{ configData, loading, error }}>
-      {children}
-    </ConfigContext.Provider>
+    <div>
+      <p>Current Theme: {configData?.theme}</p>
+      <p>Language: {configData?.language}</p>
+    </div>
   );
 };
+
+describe('ConfigProvider', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('renders loading state initially', () => {
+    render(
+      <ConfigProvider>
+        <TestComponent />
+      </ConfigProvider>
+    );
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+  });
+
+  test('renders config data after loading', async () => {
+    render(
+      <ConfigProvider>
+        <TestComponent />
+      </ConfigProvider>
+    );
+
+    await waitFor(() => expect(screen.getByText('Current Theme: dark')).toBeInTheDocument());
+    expect(screen.getByText('Language: en')).toBeInTheDocument();
+  });
+
+  test('handles fetch error', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      Promise.reject(new Error('Failed to fetch config data'))
+    );
+
+    render(
+      <ConfigProvider>
+        <TestComponent />
+      </ConfigProvider>
+    );
+
+    await waitFor(() => expect(screen.getByText('Error: Failed to fetch config data')).toBeInTheDocument());
+  });
+});
