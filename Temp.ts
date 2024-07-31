@@ -1,80 +1,58 @@
-import GenericServiceProvider from './path-to-your-service-provider';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-describe('GenericServiceProvider', () => {
-  let serviceProvider: GenericServiceProvider;
+interface ConfigData {
+  theme: string;
+  language: string;
+  // Add more configuration properties as needed
+}
 
-  beforeEach(() => {
-    serviceProvider = new GenericServiceProvider();
-  });
+interface ConfigContextValue {
+  configData: ConfigData | null;
+  loading: boolean;
+  error: string | null;
+}
 
-  it('should call onSuccess callback with data when fetch is successful', async () => {
-    const mockData = { key: 'value' };
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue(mockData),
+const ConfigContext = createContext<ConfigContextValue | undefined>(undefined);
+
+export const useConfig = (): ConfigContextValue => {
+  const context = useContext(ConfigContext);
+  if (context === undefined) {
+    throw new Error('useConfig must be used within a ConfigProvider');
+  }
+  return context;
+};
+
+interface ConfigProviderProps {
+  children: ReactNode;
+}
+
+export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
+  const [configData, setConfigData] = useState<ConfigData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/api/config'); // Replace with your API endpoint
+        if (!response.ok) {
+          throw new Error('Failed to fetch config data');
+        }
+        const data: ConfigData = await response.json();
+        setConfigData(data);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
     };
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
-    const options = { method: 'GET' as 'GET' };
-    const onSuccess = jest.fn();
-    const onError = jest.fn();
-    const callbacks = { onSuccess, onError };
+    fetchConfig();
+  }, []);
 
-    await serviceProvider.fetchService('mock-url', options, callbacks);
-
-    expect(onSuccess).toHaveBeenCalledWith(mockData);
-    expect(onError).not.toHaveBeenCalled();
-  });
-
-  it('should call onError callback with error when fetch fails', async () => {
-    const mockError = new Error('Fetch error');
-    global.fetch = jest.fn().mockRejectedValue(mockError);
-
-    const options = { method: 'GET' as 'GET' };
-    const onSuccess = jest.fn();
-    const onError = jest.fn();
-    const callbacks = { onSuccess, onError };
-
-    await serviceProvider.fetchService('mock-url', options, callbacks);
-
-    expect(onError).toHaveBeenCalledWith(mockError);
-    expect(onSuccess).not.toHaveBeenCalled();
-  });
-
-  it('should call onError callback with HTTP error when response is not ok', async () => {
-    const mockResponse = {
-      ok: false,
-      status: 404,
-      json: jest.fn(),
-    };
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
-
-    const options = { method: 'GET' as 'GET' };
-    const onSuccess = jest.fn();
-    const onError = jest.fn();
-    const callbacks = { onSuccess, onError };
-
-    await serviceProvider.fetchService('mock-url', options, callbacks);
-
-    expect(onError).toHaveBeenCalledWith(new Error('HTTP error! status: 404'));
-    expect(onSuccess).not.toHaveBeenCalled();
-  });
-
-  it('should call onError callback with a JSON parsing error', async () => {
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockRejectedValue(new Error('JSON parsing error')),
-    };
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
-
-    const options = { method: 'GET' as 'GET' };
-    const onSuccess = jest.fn();
-    const onError = jest.fn();
-    const callbacks = { onSuccess, onError };
-
-    await serviceProvider.fetchService('mock-url', options, callbacks);
-
-    expect(onError).toHaveBeenCalledWith(new Error('JSON parsing error'));
-    expect(onSuccess).not.toHaveBeenCalled();
-  });
-});
+  return (
+    <ConfigContext.Provider value={{ configData, loading, error }}>
+      {children}
+    </ConfigContext.Provider>
+  );
+};
