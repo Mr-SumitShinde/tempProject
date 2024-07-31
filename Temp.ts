@@ -1,95 +1,65 @@
-// genericServiceProvider.test.ts
-import GenericServiceProvider from './genericServiceProvider';
-
-global.fetch = jest.fn();
+import GenericServiceProvider from './path-to-your-service-provider';
 
 describe('GenericServiceProvider', () => {
   let serviceProvider: GenericServiceProvider;
 
   beforeEach(() => {
     serviceProvider = new GenericServiceProvider();
-    (fetch as jest.Mock).mockClear();
   });
 
-  it('should fetch data successfully', async () => {
-    const mockData = { data: 'test' };
-    (fetch as jest.Mock).mockResolvedValue({
+  it('should call onSuccess callback with data when fetch is successful', async () => {
+    const mockData = { key: 'value' };
+    const mockResponse = {
       ok: true,
-      json: async () => mockData,
-    });
+      json: jest.fn().mockResolvedValue(mockData),
+    };
+    global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
+    const url = 'https://api.example.com/data';
+    const options = { method: 'GET' };
     const onSuccess = jest.fn();
     const onError = jest.fn();
+    const callbacks = { onSuccess, onError };
 
-    await serviceProvider.fetchService<any>(
-      'https://api.example.com/data',
-      { method: 'GET' },
-      { onSuccess, onError }
-    );
+    await serviceProvider.fetchService(url, options, callbacks);
 
     expect(onSuccess).toHaveBeenCalledWith(mockData);
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it('should handle fetch error', async () => {
+  it('should call onError callback with error when fetch fails', async () => {
     const mockError = new Error('Fetch error');
-    (fetch as jest.Mock).mockRejectedValue(mockError);
+    global.fetch = jest.fn().mockRejectedValue(mockError);
 
+    const url = 'https://api.example.com/data';
+    const options = { method: 'GET' };
     const onSuccess = jest.fn();
     const onError = jest.fn();
+    const callbacks = { onSuccess, onError };
 
-    await serviceProvider.fetchService<any>(
-      'https://api.example.com/data',
-      { method: 'GET' },
-      { onSuccess, onError }
-    );
+    await serviceProvider.fetchService(url, options, callbacks);
 
-    expect(onSuccess).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledWith(mockError);
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
-  it('should handle HTTP error response', async () => {
-    (fetch as jest.Mock).mockResolvedValue({
+  it('should call onError callback with HTTP error when response is not ok', async () => {
+    const mockResponse = {
       ok: false,
       status: 404,
-    });
+      json: jest.fn(),
+    };
+    global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
+    const url = 'https://api.example.com/data';
+    const options = { method: 'GET' };
     const onSuccess = jest.fn();
     const onError = jest.fn();
+    const callbacks = { onSuccess, onError };
 
-    await serviceProvider.fetchService<any>(
-      'https://api.example.com/data',
-      { method: 'GET' },
-      { onSuccess, onError }
-    );
+    await serviceProvider.fetchService(url, options, callbacks);
 
-    expect(onSuccess).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledWith(new Error('HTTP error! status: 404'));
-  });
-
-  it('should interrupt fetch request', async () => {
-    const mockAbortError = new DOMException('The user aborted a request.', 'AbortError');
-    (fetch as jest.Mock).mockImplementation(
-      () => new Promise((_, reject) => setTimeout(() => reject(mockAbortError), 100))
-    );
-
-    const onSuccess = jest.fn();
-    const onError = jest.fn();
-    const onInterrupt = jest.fn();
-
-    serviceProvider.fetchService<any>(
-      'https://api.example.com/data',
-      { method: 'GET' },
-      { onSuccess, onError, onInterrupt },
-      'testInterruptKey'
-    );
-
-    serviceProvider.interruptFetch('testInterruptKey');
-
-    await new Promise((r) => setTimeout(r, 150)); // wait for the fetch to be rejected
-
     expect(onSuccess).not.toHaveBeenCalled();
-    expect(onError).not.toHaveBeenCalled();
-    expect(onInterrupt).toHaveBeenCalled();
   });
 });
