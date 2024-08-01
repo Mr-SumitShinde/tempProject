@@ -1,25 +1,34 @@
-// src/FormProvider.tsx
-import React, { createContext, useContext, useEffect } from 'react';
-import { useForm, FormProvider as RHFProvider } from 'react-hook-form';
-import { useConfigContext } from './ConfigProvider';
+// src/ConfigProvider.tsx
+import React, { createContext, useContext, ReactNode } from 'react';
+import useConfig from './useConfig';
 
-const FormContext = createContext<any>(null);
+interface ConfigContextType {
+  config: any;
+  loading: boolean;
+  error: string | null;
+}
 
-export const useFormContext = () => useContext(FormContext);
+const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
-export const FormProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { config } = useConfigContext();
-  const methods = useForm();
+export const useConfigContext = (): ConfigContextType => {
+  const context = useContext(ConfigContext);
+  if (context === undefined) {
+    throw new Error('useConfigContext must be used within a ConfigProvider');
+  }
+  return context;
+};
 
-  useEffect(() => {
-    if (config) {
-      methods.reset(config.defaultValues);
-    }
-  }, [config, methods]);
+interface ConfigProviderProps {
+  configUrl: string;
+  children: ReactNode;
+}
+
+export const ConfigProvider: React.FC<ConfigProviderProps> = ({ configUrl, children }) => {
+  const { config, loading, error } = useConfig(configUrl);
 
   return (
-    <FormContext.Provider value={methods}>
-      <RHFProvider {...methods}>{children}</RHFProvider>
-    </FormContext.Provider>
+    <ConfigContext.Provider value={{ config, loading, error }}>
+      {children}
+    </ConfigContext.Provider>
   );
 };
