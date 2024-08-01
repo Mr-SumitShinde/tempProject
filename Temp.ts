@@ -13,6 +13,8 @@ interface DynamicFormProps {
   onSubmit: (data: any) => void;
   onError: (errors: any) => void;
   customFieldComponents?: { [key: string]: React.FC<FieldProps> };
+  onClickBack?: () => void;
+  clearForm?: () => void;
 }
 
 const DefaultField: React.FC<FieldProps> = ({ field, register, error }) => (
@@ -30,9 +32,15 @@ const DefaultField: React.FC<FieldProps> = ({ field, register, error }) => (
   </div>
 );
 
-const DynamicForm: React.FC<DynamicFormProps> = ({ onSubmit, onError, customFieldComponents = {} }) => {
+const DynamicForm: React.FC<DynamicFormProps> = ({ onSubmit, onError, customFieldComponents = {}, onClickBack, clearForm }) => {
   const { config, loading, error } = useConfigContext();
-  const { register, handleSubmit, formState: { errors } } = useFormContext();
+  const { register, handleSubmit, reset, formState: { errors } } = useFormContext();
+
+  const handleClearForm = () => {
+    if (config) {
+      reset(config.defaultValues);
+    }
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -60,6 +68,8 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onSubmit, onError, customFiel
         );
       })}
       <button type="submit">Submit</button>
+      {onClickBack && <button type="button" onClick={onClickBack}>Back</button>}
+      {clearForm && <button type="button" onClick={handleClearForm}>Clear</button>}
     </form>
   );
 };
