@@ -1,65 +1,87 @@
-import React from 'react';
-import { ConfigProvider } from './ConfigProvider';
-import { FormProvider } from './FormProvider';
-import DynamicForm from './DynamicForm';
-import { useNavigate } from 'react-router-dom';
+const express = require('express');
+const app = express();
+const port = 3001;
 
-interface FieldProps {
-  field: any;
-  register: any;
-  error: any;
-}
-
-const App: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handleOnSubmit = (data: any) => {
-    console.log('Form Submitted Successfully:', data);
-    // Your form submission logic here
-  };
-
-  const handleOnError = (errors: any) => {
-    console.log('Form Submission Errors:', errors);
-    // Your error handling logic here
-  };
-
-  const handleOnClickBack = () => {
-    navigate('/previous-page'); // Replace with your desired back URL
-  };
-
-  const handleClearForm = () => {
-    console.log('Form cleared');
-    // The form will be reset automatically
-  };
-
-  const CustomTextField: React.FC<FieldProps> = ({ field, register, error }) => (
-    <div>
-      <label htmlFor={field.name}>{field.label}</label>
-      <input
-        id={field.name}
-        {...register(field.name, field.validation)}
-        type="text"
-        defaultValue={field.defaultValue}
-        aria-invalid={!!error}
-        aria-describedby={`${field.name}-error`}
-      />
-      {error && <span id={`${field.name}-error`}>{error.message}</span>}
-    </div>
-  );
-
-  return (
-    <ConfigProvider configUrl="https://example.com/form-config">
-      <FormProvider>
-        <DynamicForm
-          onSubmit={handleOnSubmit}
-          onError={handleOnError}
-          onClickBack={handleOnClickBack}
-          clearForm={handleClearForm}
-          customFieldComponents={{ text: CustomTextField }}
-        />
-      </FormProvider>
-    </ConfigProvider>
-  );
+// Dummy configuration
+const formConfig = {
+  "defaultValues": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "",
+    "age": 30,
+    "subscribe": false
+  },
+  "fields": [
+    {
+      "name": "firstName",
+      "label": "First Name",
+      "type": "text",
+      "defaultValue": "John",
+      "validation": {
+        "required": "First Name is required",
+        "maxLength": {
+          "value": 30,
+          "message": "First Name cannot exceed 30 characters"
+        }
+      }
+    },
+    {
+      "name": "lastName",
+      "label": "Last Name",
+      "type": "text",
+      "defaultValue": "Doe",
+      "validation": {
+        "required": "Last Name is required",
+        "maxLength": {
+          "value": 30,
+          "message": "Last Name cannot exceed 30 characters"
+        }
+      }
+    },
+    {
+      "name": "email",
+      "label": "Email",
+      "type": "email",
+      "defaultValue": "",
+      "validation": {
+        "required": "Email is required",
+        "pattern": {
+          "value": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,4}$",
+          "message": "Invalid email address"
+        }
+      }
+    },
+    {
+      "name": "age",
+      "label": "Age",
+      "type": "number",
+      "defaultValue": 30,
+      "validation": {
+        "required": "Age is required",
+        "min": {
+          "value": 18,
+          "message": "Age must be at least 18"
+        },
+        "max": {
+          "value": 99,
+          "message": "Age must be less than 100"
+        }
+      }
+    },
+    {
+      "name": "subscribe",
+      "label": "Subscribe to Newsletter",
+      "type": "checkbox",
+      "defaultValue": false
+    }
+  ]
 };
 
-export default App;
+// Route to get the form configuration
+app.get('/form-config', (req, res) => {
+  res.json(formConfig);
+});
+
+app.listen(port, () => {
+  console.log(`Dummy server running at http://localhost:${port}`);
+});
