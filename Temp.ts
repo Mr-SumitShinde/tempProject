@@ -2,10 +2,16 @@ import React from 'react';
 import { ConfigProvider } from './ConfigProvider';
 import { FormProvider } from './FormProvider';
 import DynamicForm from './DynamicForm';
-import { useNavigate } from 'react-router-dom'; // Updated to use useNavigate from react-router-dom
+import { useNavigate } from 'react-router-dom';
+
+interface FieldProps {
+  field: any;
+  register: any;
+  error: any;
+}
 
 const App: React.FC = () => {
-  const navigate = useNavigate(); // Updated to use useNavigate
+  const navigate = useNavigate();
 
   const handleOnSubmit = (data: any) => {
     console.log('Form Submitted Successfully:', data);
