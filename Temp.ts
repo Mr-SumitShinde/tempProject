@@ -1,6 +1,10 @@
 const express = require('express');
+const cors = require('cors'); // Import cors
 const app = express();
 const port = 3001;
+
+// Use cors middleware
+app.use(cors());
 
 // Dummy configuration
 const formConfig = {
