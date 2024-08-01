@@ -2,10 +2,10 @@ import React from 'react';
 import { ConfigProvider } from './ConfigProvider';
 import { FormProvider } from './FormProvider';
 import DynamicForm from './DynamicForm';
-import { useHistory } from 'react-router-dom'; // If you're using react-router for navigation
+import { useNavigate } from 'react-router-dom'; // Updated to use useNavigate from react-router-dom
 
 const App: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate(); // Updated to use useNavigate
 
   const handleOnSubmit = (data: any) => {
     console.log('Form Submitted Successfully:', data);
@@ -18,7 +18,7 @@ const App: React.FC = () => {
   };
 
   const handleOnClickBack = () => {
-    history.push('/previous-page'); // Replace with your desired back URL
+    navigate('/previous-page'); // Replace with your desired back URL
   };
 
   const handleClearForm = () => {
