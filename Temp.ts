@@ -1,34 +1,46 @@
-// src/ConfigProvider.tsx
-import React, { createContext, useContext, ReactNode } from 'react';
-import useConfig from './useConfig';
+// src/useConfig.ts
+import { useState, useEffect } from 'react';
 
-interface ConfigContextType {
-  config: any;
-  loading: boolean;
-  error: string | null;
+interface FieldConfig {
+  name: string;
+  label: string;
+  type: string;
+  defaultValue: any;
+  validation?: any;
 }
 
-const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
-
-export const useConfigContext = (): ConfigContextType => {
-  const context = useContext(ConfigContext);
-  if (context === undefined) {
-    throw new Error('useConfigContext must be used within a ConfigProvider');
-  }
-  return context;
-};
-
-interface ConfigProviderProps {
-  configUrl: string;
-  children: ReactNode;
+interface Config {
+  defaultValues: Record<string, any>;
+  fields: FieldConfig[];
 }
 
-export const ConfigProvider: React.FC<ConfigProviderProps> = ({ configUrl, children }) => {
-  const { config, loading, error } = useConfig(configUrl);
+const useConfig = (configUrl: string) => {
+  const [config, setConfig] = useState<Config | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return (
-    <ConfigContext.Provider value={{ config, loading, error }}>
-      {children}
-    </ConfigContext.Provider>
-  );
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(configUrl);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data: Config = await response.json();
+        setConfig(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load config');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConfig();
+  }, [configUrl]);
+
+  return { config, loading, error };
 };
+
+export default useConfig;
