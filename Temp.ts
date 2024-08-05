@@ -59,3 +59,19 @@ if (!appName) {
 }
 
 createApp(appName);
+
+{
+  "name": "create-clm-app",
+  "version": "1.0.0",
+  "description": "CLI to create a new CLM app",
+  "main": "index.js",
+  "bin": {
+    "create-clm-app": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security"
+  }
+}
