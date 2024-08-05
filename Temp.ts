@@ -2,32 +2,51 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
 // Function to execute shell commands
 const executeCommand = (command) => {
   try {
     execSync(command, { stdio: 'inherit' });
   } catch (error) {
-    console.error(`Error executing command: ${command}`, error);
+    console.error(`Error executing command: ${command}`);
+    console.error(error.message);
+    process.exit(1);
+  }
+};
+
+// Function to validate project name
+const validateProjectName = (name) => {
+  const validName = /^[a-zA-Z0-9_-]+$/.test(name);
+  if (!name || !validName) {
+    console.error('Invalid project name. Please use only letters, numbers, hyphens, or underscores.');
     process.exit(1);
   }
 };
 
 // Function to create the new app
 const createApp = (appName) => {
-  console.log(`Creating a new CLM app in ${process.cwd()}/${appName}`);
+  validateProjectName(appName);
 
-  // Create the directory for the new app
-  fs.mkdirSync(appName);
+  const appPath = path.resolve(process.cwd(), appName);
+  console.log(`Creating a new CLM app in ${appPath}`);
+
+  // Create the directory for the new app if it doesn't exist
+  if (!fs.existsSync(appPath)) {
+    fs.mkdirSync(appPath, { recursive: true });
+  } else {
+    console.error(`Directory ${appName} already exists. Please choose a different name or remove the existing directory.`);
+    process.exit(1);
+  }
 
   // Navigate to the new directory
-  process.chdir(appName);
+  process.chdir(appPath);
 
   // Initialize a new React app using Create React App
-  executeCommand('npx create-react-app .');
+  executeCommand('npx create-react-app . --template typescript');
 
   console.log('Installing additional dependencies...');
-  // Add your additional dependencies with specific versions here
+  // Additional dependencies
   const dependencies = [
     'react@18.2.0',
     'react-dom@18.2.0',
@@ -43,6 +62,7 @@ const createApp = (appName) => {
   ];
   executeCommand(`npm install ${dependencies.join(' ')}`);
 
+  // Development dependencies
   const devDependencies = [
     'postcss-nesting@^12.1.4',
     '@babel/core@^7.14.5',
@@ -95,7 +115,8 @@ const createApp = (appName) => {
 
   console.log('Setting up project structure...');
   // Add any additional setup you need here
-  // fs.writeFileSync('src/setupFile.js', 'console.log("Setup complete");');
+  // For example, creating custom directories or configuration files
+  fs.writeFileSync('src/customSetup.js', 'console.log("Custom setup complete");');
 
   console.log('App created successfully!');
 };
