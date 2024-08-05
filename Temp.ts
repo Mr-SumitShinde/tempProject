@@ -1,91 +1,61 @@
-const express = require('express');
-const cors = require('cors'); // Import cors
-const app = express();
-const port = 3001;
+#!/usr/bin/env node
 
-// Use cors middleware
-app.use(cors());
+const { execSync } = require('child_process');
+const fs = require('fs');
 
-// Dummy configuration
-const formConfig = {
-  "defaultValues": {
-    "firstName": "John",
-    "lastName": "Doe",
-    "email": "",
-    "age": 30,
-    "subscribe": false
-  },
-  "fields": [
-    {
-      "name": "firstName",
-      "label": "First Name",
-      "type": "text",
-      "defaultValue": "John",
-      "validation": {
-        "required": "First Name is required",
-        "maxLength": {
-          "value": 30,
-          "message": "First Name cannot exceed 30 characters"
-        }
-      }
-    },
-    {
-      "name": "lastName",
-      "label": "Last Name",
-      "type": "text",
-      "defaultValue": "Doe",
-      "validation": {
-        "required": "Last Name is required",
-        "maxLength": {
-          "value": 30,
-          "message": "Last Name cannot exceed 30 characters"
-        }
-      }
-    },
-    {
-      "name": "email",
-      "label": "Email",
-      "type": "email",
-      "defaultValue": "",
-      "validation": {
-        "required": "Email is required",
-        "pattern": {
-          "value": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,4}$",
-          "message": "Invalid email address"
-        }
-      }
-    },
-    {
-      "name": "age",
-      "label": "Age",
-      "type": "number",
-      "defaultValue": 30,
-      "validation": {
-        "required": "Age is required",
-        "min": {
-          "value": 18,
-          "message": "Age must be at least 18"
-        },
-        "max": {
-          "value": 99,
-          "message": "Age must be less than 100"
-        }
-      }
-    },
-    {
-      "name": "subscribe",
-      "label": "Subscribe to Newsletter",
-      "type": "checkbox",
-      "defaultValue": false
-    }
-  ]
+// Function to execute shell commands
+const executeCommand = (command) => {
+  try {
+    execSync(command, { stdio: 'inherit' });
+  } catch (error) {
+    console.error(`Error executing command: ${command}`, error);
+    process.exit(1);
+  }
 };
 
-// Route to get the form configuration
-app.get('/form-config', (req, res) => {
-  res.json(formConfig);
-});
+// Function to create the new app
+const createApp = (appName) => {
+  console.log(`Creating a new CLM app in ${process.cwd()}/${appName}`);
 
-app.listen(port, () => {
-  console.log(`Dummy server running at http://localhost:${port}`);
-});
+  // Create the directory for the new app
+  fs.mkdirSync(appName);
+
+  // Navigate to the new directory
+  process.chdir(appName);
+
+  // Initialize a new React app using Create React App
+  executeCommand('npx create-react-app .');
+
+  console.log('Installing additional dependencies...');
+  // Add your additional dependencies here
+  const dependencies = [
+    'blueprintjs/core',
+    'blueprintjs/icons',
+    '@emotion/react',
+    '@emotion/styled',
+    'axios'
+  ];
+  executeCommand(`npm install ${dependencies.join(' ')}`);
+
+  const devDependencies = [
+    'jest',
+    '@testing-library/react',
+    '@testing-library/jest-dom'
+  ];
+  executeCommand(`npm install --save-dev ${devDependencies.join(' ')}`);
+
+  console.log('Setting up project structure...');
+  // Add any additional setup you need here
+  // fs.writeFileSync('src/setupFile.js', 'console.log("Setup complete");');
+
+  console.log('App created successfully!');
+};
+
+// Get the app name from the command line arguments
+const appName = process.argv[2];
+if (!appName) {
+  console.error('Please provide a name for your app.');
+  process.exit(1);
+}
+
+createApp(appName);
