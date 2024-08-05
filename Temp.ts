@@ -24,12 +24,27 @@ const validateProjectName = (name) => {
   }
 };
 
+// Function to create the sonar-project.properties file
+const createSonarProjectFile = (rootPath) => {
+  const sonarConfig = `
+sonar.projectKey=my-nx-monorepo
+sonar.organization=my-org
+sonar.sources=.
+sonar.exclusions=**/node_modules/**,**/dist/**,**/*.spec.ts
+sonar.tests=.
+sonar.test.inclusions=**/*.spec.ts
+sonar.javascript.lcov.reportPaths=coverage/lcov.info
+`;
+  fs.writeFileSync(path.join(rootPath, 'sonar-project.properties'), sonarConfig);
+  console.log('Created sonar-project.properties file.');
+};
+
 // Function to create the new app
 const createApp = (appName) => {
   validateProjectName(appName);
 
   const appPath = path.resolve(process.cwd(), appName);
-  console.log(`Creating a new CLM app in ${appPath}`);
+  console.log(`Creating a new CLM Nx monorepo app in ${appPath}`);
 
   // Create the directory for the new app if it doesn't exist
   if (!fs.existsSync(appPath)) {
@@ -42,8 +57,11 @@ const createApp = (appName) => {
   // Navigate to the new directory
   process.chdir(appPath);
 
-  // Initialize a new React app using Create React App
-  executeCommand('npx create-react-app . --template typescript');
+  // Initialize a new Nx workspace
+  executeCommand(`npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=css --nx-cloud=false`);
+
+  // Change directory to the newly created workspace
+  process.chdir(appName);
 
   console.log('Installing additional dependencies...');
   // Additional dependencies
@@ -114,9 +132,13 @@ const createApp = (appName) => {
   executeCommand(`npm install --save-dev ${devDependencies.join(' ')}`);
 
   console.log('Setting up project structure...');
-  // Add any additional setup you need here
-  // For example, creating custom directories or configuration files
-  fs.writeFileSync('src/customSetup.js', 'console.log("Custom setup complete");');
+  // Rename 'apps' to 'src' and move the initial app inside
+  fs.renameSync('apps', 'src');
+  fs.mkdirSync(path.join('src', appName), { recursive: true });
+  fs.renameSync(path.join('src', appName), path.join('src', appName, appName));
+
+  // Create sonar-project.properties file
+  createSonarProjectFile(appPath);
 
   console.log('App created successfully!');
 };
