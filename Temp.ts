@@ -95,3 +95,6 @@ const createApp = async () => {
 };
 
 createApp();
+
+
+npx create-nx-workspace@latest hello-world --preset=react --appName=hello-world --style=scss --bundler=vite --ci=bitbucket-pipelines --nxCloud=false
