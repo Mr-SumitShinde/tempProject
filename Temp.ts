@@ -5,9 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const executeCommand = (command) => {
+const executeCommand = (command, options = {}) => {
   try {
-    execSync(command, { stdio: 'inherit' });
+    execSync(command, { stdio: 'inherit', ...options });
   } catch (error) {
     console.error(`Error executing command: ${command}`);
     console.error(error.message);
@@ -80,78 +80,32 @@ const createApp = async () => {
 
   process.chdir(appPath);
 
-  // Write workspace.json
-  const workspaceConfig = {
-    npmScope: appName,
-    defaultProject: appName,
-    projects: {
-      [appName]: {
-        projectType: "application",
-        root: `apps/${appName}`,
-        sourceRoot: `apps/${appName}/src`,
-        prefix: "app",
-        targets: {
-          build: {
-            executor: "@nrwl/web:build",
-            options: {
-              outputPath: `dist/apps/${appName}`,
-              index: `apps/${appName}/src/index.html`,
-              main: `apps/${appName}/src/main.tsx`,
-              polyfills: `apps/${appName}/src/polyfills.ts`,
-              tsConfig: `apps/${appName}/tsconfig.app.json`,
-              assets: [`apps/${appName}/src/favicon.ico`, `apps/${appName}/src/assets`],
-              styles: [`apps/${appName}/src/styles.scss`],
-              scripts: []
-            },
-            configurations: {
-              production: {
-                fileReplacements: [
-                  {
-                    replace: `apps/${appName}/src/environments/environment.ts`,
-                    with: `apps/${appName}/src/environments/environment.prod.ts`
-                  }
-                ],
-                optimization: true,
-                outputHashing: "all",
-                sourceMap: false,
-                extractCss: true,
-                namedChunks: false,
-                extractLicenses: true,
-                vendorChunk: false,
-                buildOptimizer: true,
-                budgets: [
-                  {
-                    type: "initial",
-                    maximumWarning: "2mb",
-                    maximumError: "5mb"
-                  }
-                ]
-              }
-            }
-          },
-          serve: {
-            executor: "@nrwl/web:dev-server",
-            options: {
-              buildTarget: `${appName}:build`
-            },
-            configurations: {
-              production: {
-                buildTarget: `${appName}:build:production`
-              }
-            }
-          }
-        }
-      }
-    }
-  };
+  const createNxWorkspaceCommand = `
+    npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=sass --nx-cloud=skip --packageManager=npm
+  `;
+  
+  const automationScript = `
+    #!/usr/bin/expect -f
+    spawn ${createNxWorkspaceCommand}
+    expect "Which bundler would you like to use?"
+    send "vite\r"
+    expect "Test runner to use for end to end (E2E) tests"
+    send "none\r"
+    interact
+  `;
+  
+  fs.writeFileSync('automation_script.sh', automationScript);
+  executeCommand('chmod +x automation_script.sh');
+  executeCommand('./automation_script.sh');
+  fs.unlinkSync('automation_script.sh');
 
-  fs.writeFileSync('workspace.json', JSON.stringify(workspaceConfig, null, 2));
-
-  executeCommand(`npx create-nx-workspace@latest --preset=empty --nx-cloud=skip --packageManager=npm --no-interactive`);
-
-  process.chdir(appPath);
-
-  executeCommand(`npx nx generate @nrwl/react:application ${appName} --style=sass --bundler=vite --e2eTestRunner=none`);
+  const workspacePath = path.resolve(appPath, appName);
+  if (fs.existsSync(workspacePath)) {
+    process.chdir(workspacePath);
+  } else {
+    console.error(`Workspace directory ${workspacePath} not found. Setup may be incomplete.`);
+    return;
+  }
 
   console.log('Setting up project structure...');
   fs.mkdirSync('apps', { recursive: true });
