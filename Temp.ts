@@ -5,9 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const executeCommand = (command, options = {}) => {
+const executeCommand = (command) => {
   try {
-    execSync(command, { stdio: 'inherit', ...options });
+    execSync(command, { stdio: 'inherit' });
   } catch (error) {
     console.error(`Error executing command: ${command}`);
     console.error(error.message);
@@ -80,24 +80,7 @@ const createApp = async () => {
 
   process.chdir(appPath);
 
-  const createNxWorkspaceCommand = `
-    npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=sass --nx-cloud=skip --packageManager=npm
-  `;
-  
-  const automationScript = `
-    #!/usr/bin/expect -f
-    spawn ${createNxWorkspaceCommand}
-    expect "Which bundler would you like to use?"
-    send "vite\r"
-    expect "Test runner to use for end to end (E2E) tests"
-    send "none\r"
-    interact
-  `;
-  
-  fs.writeFileSync('automation_script.sh', automationScript);
-  executeCommand('chmod +x automation_script.sh');
-  executeCommand('./automation_script.sh');
-  fs.unlinkSync('automation_script.sh');
+  executeCommand(`npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=sass --nx-cloud=skip --packageManager=npm`);
 
   const workspacePath = path.resolve(appPath, appName);
   if (fs.existsSync(workspacePath)) {
