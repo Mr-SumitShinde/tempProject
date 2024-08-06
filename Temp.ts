@@ -66,29 +66,28 @@ sonar.javascript.lcov.reportPaths=coverage/lcov.info
 };
 
 const createApp = async () => {
-  let appName;
-  let sonarProjectKey;
-
-  do {
-    appName = await promptUser('Enter a valid project name (letters, numbers, hyphens, underscores): ');
-  } while (!validateProjectName(appName));
-
-  do {
-    sonarProjectKey = await promptUser('Enter a valid Sonar project key (letters, numbers, hyphens, underscores): ');
-  } while (!validateSonarProjectKey(sonarProjectKey));
-
-  const appPath = process.cwd();
-  console.log(`Creating a new CLM Nx monorepo app in ${appPath}`);
-
   try {
+    let appName;
+    let sonarProjectKey;
+
+    do {
+      appName = await promptUser('Enter a valid project name (letters, numbers, hyphens, underscores): ');
+    } while (!validateProjectName(appName));
+
+    do {
+      sonarProjectKey = await promptUser('Enter a valid Sonar project key (letters, numbers, hyphens, underscores): ');
+    } while (!validateSonarProjectKey(sonarProjectKey));
+
+    const appPath = process.cwd();
+    console.log(`Creating a new CLM Nx monorepo app in ${appPath}`);
+
     await executeCommand(`npx create-nx-workspace --name=cli-ui-${appName} --preset=react-monorepo --framework=none --appName=${appName} --style=scss --bundler=vite --nxCloud=skip --workspaceType=integrated --e2eTestRunner=none`);
 
     const workspacePath = path.resolve(appPath, `cli-ui-${appName}`);
     if (fs.existsSync(workspacePath)) {
       process.chdir(workspacePath);
     } else {
-      console.error(`Workspace directory ${workspacePath} not found. Setup may be incomplete.`);
-      return;
+      throw new Error(`Workspace directory ${workspacePath} not found. Setup may be incomplete.`);
     }
 
     console.log('Setting up project structure...');
