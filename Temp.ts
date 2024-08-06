@@ -82,7 +82,13 @@ const createApp = async () => {
 
   executeCommand(`npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=sass --nx-cloud=false --packageManager=npm`);
 
-  process.chdir(appName);
+  const workspacePath = path.resolve(appPath, appName);
+  if (fs.existsSync(workspacePath)) {
+    process.chdir(workspacePath);
+  } else {
+    console.error(`Workspace directory ${workspacePath} not found. Setup may be incomplete.`);
+    return;
+  }
 
   console.log('Setting up project structure...');
   fs.mkdirSync('apps', { recursive: true });
