@@ -68,17 +68,8 @@ const createApp = async () => {
     sonarProjectKey = await promptUser('Enter a valid Sonar project key (letters, numbers, hyphens, underscores): ');
   } while (!validateSonarProjectKey(sonarProjectKey));
 
-  const appPath = path.resolve(process.cwd(), appName);
+  const appPath = process.cwd();
   console.log(`Creating a new CLM Nx monorepo app in ${appPath}`);
-
-  if (!fs.existsSync(appPath)) {
-    fs.mkdirSync(appPath, { recursive: true });
-  } else {
-    console.error(`Directory ${appName} already exists. Please choose a different name or remove the existing directory.`);
-    return;
-  }
-
-  process.chdir(appPath);
 
   executeCommand(`npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=sass --nx-cloud=skip --packageManager=npm`);
 
