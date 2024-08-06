@@ -80,7 +80,7 @@ const createApp = async () => {
 
   process.chdir(appPath);
 
-  executeCommand(`npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=sass --nx-cloud=false --packageManager=npm`);
+  executeCommand(`npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=sass --nx-cloud=skip --packageManager=npm`);
 
   const workspacePath = path.resolve(appPath, appName);
   if (fs.existsSync(workspacePath)) {
