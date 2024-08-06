@@ -4,6 +4,7 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const cliProgress = require('cli-progress');
 
 const executeCommand = (command) => {
   return new Promise((resolve, reject) => {
@@ -66,6 +67,7 @@ sonar.javascript.lcov.reportPaths=coverage/lcov.info
 };
 
 const createApp = async () => {
+  const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
   try {
     let appName;
     let sonarProjectKey;
@@ -81,7 +83,10 @@ const createApp = async () => {
     const appPath = process.cwd();
     console.log(`Creating a new CLM Nx monorepo app in ${appPath}`);
 
+    progressBar.start(100, 0);
+
     await executeCommand(`npx create-nx-workspace --name=cli-ui-${appName} --preset=react-monorepo --framework=none --appName=${appName} --style=scss --bundler=vite --nxCloud=skip --workspaceType=integrated --e2eTestRunner=none`);
+    progressBar.update(50);
 
     const workspacePath = path.resolve(appPath, `cli-ui-${appName}`);
     if (fs.existsSync(workspacePath)) {
@@ -99,10 +104,13 @@ const createApp = async () => {
     }
 
     createSonarProjectFile(workspacePath, sonarProjectKey);
+    progressBar.update(100);
 
     console.log('App created successfully!');
   } catch (error) {
     console.error(`Error: ${error.message}`);
+  } finally {
+    progressBar.stop();
   }
 };
 
