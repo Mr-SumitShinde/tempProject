@@ -71,9 +71,9 @@ const createApp = async () => {
   const appPath = process.cwd();
   console.log(`Creating a new CLM Nx monorepo app in ${appPath}`);
 
-  executeCommand(`npx create-nx-workspace@latest ${appName} --preset=react-monorepo --appName=${appName} --style=sass --nx-cloud=skip --packageManager=npm`);
+  executeCommand(`npx create-nx-workspace --name=cli-ui-${appName} --preset=react-monorepo --framework=none --appName=${appName} --style=scss --bundler=vite --nxCloud=skip --workspaceType=integrated --e2eTestRunner=none`);
 
-  const workspacePath = path.resolve(appPath, appName);
+  const workspacePath = path.resolve(appPath, `cli-ui-${appName}`);
   if (fs.existsSync(workspacePath)) {
     process.chdir(workspacePath);
   } else {
@@ -89,12 +89,9 @@ const createApp = async () => {
     console.error(`Expected initial app directory apps/${appName} not found. Setup may be incomplete.`);
   }
 
-  createSonarProjectFile(appPath, sonarProjectKey);
+  createSonarProjectFile(workspacePath, sonarProjectKey);
 
   console.log('App created successfully!');
 };
 
 createApp();
-
-
-npx create-nx-workspace@latest hello-world --preset=react --appName=hello-world --style=scss --bundler=vite --ci=bitbucket-pipelines --nxCloud=false
