@@ -3,7 +3,6 @@
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 
 const executeCommand = (command) => {
   return new Promise((resolve, reject) => {
@@ -39,18 +38,6 @@ const validateSonarProjectKey = (key) => {
   return validKey;
 };
 
-const promptUser = (query) => {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  return new Promise((resolve) => rl.question(query, (answer) => {
-    rl.close();
-    resolve(answer);
-  }));
-};
-
 const createSonarProjectFile = (rootPath, sonarProjectKey) => {
   const sonarConfig = `
 sonar.projectKey=${sonarProjectKey}
@@ -65,18 +52,15 @@ sonar.javascript.lcov.reportPaths=coverage/lcov.info
   console.log('Created sonar-project.properties file.');
 };
 
-const createApp = async () => {
+const createApp = async (appName, sonarProjectKey) => {
   try {
-    let appName;
-    let sonarProjectKey;
+    if (!validateProjectName(appName)) {
+      throw new Error('Invalid project name.');
+    }
 
-    do {
-      appName = await promptUser('Enter a valid project name (letters, numbers, hyphens, underscores): ');
-    } while (!validateProjectName(appName));
-
-    do {
-      sonarProjectKey = await promptUser('Enter a valid Sonar project key (format: PBWMCLM::UI::DOCREPOSITORY::SNSVC0069179): ');
-    } while (!validateSonarProjectKey(sonarProjectKey));
+    if (!validateSonarProjectKey(sonarProjectKey)) {
+      throw new Error('Invalid Sonar project key.');
+    }
 
     const appPath = process.cwd();
     console.log(`Creating a new CLM Nx monorepo app in ${appPath}`);
@@ -106,4 +90,7 @@ const createApp = async () => {
   }
 };
 
-createApp();
+// Example usage: Pass project name and Sonar project key as parameters
+const appName = 'exampleAppName';
+const sonarProjectKey = 'PBWMCLM::UI::DOCREPOSITORY::SNSVC0069179';
+createApp(appName, sonarProjectKey);
