@@ -1,55 +1,16 @@
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
+// index.js
 
-// Import the React package and your helper function
-const { createReactLifecycles } = require('your-react-package-name');
-const Main = require('your-react-package-name').default;
+// This code runs when the DOM content is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Select the element with the ID 'app'
+    const app = document.getElementById('app');
 
-const server = express();
-const port = 5000;
+    // Create a new div element
+    const newDiv = document.createElement('div');
 
-server.use(cors());
+    // Add some content to the new div
+    newDiv.innerHTML = '<h1>Hello, World!</h1><p>This is a simple JavaScript example.</p>';
 
-server.use("", function (req, res, next) {
-    if ('POST' != req.method) {
-        next();
-    } else {
-        req.method = 'GET';
-        next();
-    }
-});
-
-// Serve static assets if needed
-server.use('', express.static(path.join(__dirname, '_mock')));
-
-// Create React lifecycles for Single-SPA
-const reactLifecycles = createReactLifecycles(Main);
-
-// Middleware to handle the Single-SPA lifecycle methods
-server.use('/pbwm/launcher', (req, res) => {
-    server.set('view engine', 'ejs');
-    const htmlContent = `
-        <div id="layout-workarea"></div>
-        <script type="module">
-            import { bootstrap, mount, unmount } from 'your-react-package-name';
-
-            bootstrap({}).then(() => {
-                mount({});
-            });
-
-            window.addEventListener('unload', () => {
-                unmount({});
-            });
-        </script>
-    `;
-    res.render('index', { content: htmlContent });
-});
-
-server.use('/pbwm/ui', (req, res) => {
-    res.sendStatus(200);
-});
-
-server.listen(port, () => {
-    console.log(`Server is running on port: ${port}`);
+    // Append the new div to the 'app' element
+    app.appendChild(newDiv);
 });
