@@ -23,3 +23,13 @@ rootElement.appendChild(heading);
     <script src="index.js"></script>
 </body>
 </html>
+
+
+export default function displayMessage() {
+    const rootElement = document.getElementById('root');
+    const heading = document.createElement('h1');
+    heading.textContent = 'Hello World';
+    rootElement.appendChild(heading);
+}
+
+displayMessage();
