@@ -1,15 +1,1 @@
-import babel from 'rollup-plugin-babel';
-
-export default {
-  input: 'src/index.js',
-  output: {
-    file: 'dist/index.js',
-    format: 'cjs',
-  },
-  plugins: [
-    babel({
-      exclude: 'node_modules/**',
-    }),
-  ],
-  external: ['react', 'react-dom'],
-};
+npm install --save-dev webpack webpack-cli webpack-node-externals babel-loader @babel/core @babel/preset-env @babel/preset-react
