@@ -1,30 +1,37 @@
+npm install --save-dev @svgr/webpack
+
+
 const path = require('path');
 const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
-  entry: './src/index.js', // Entry point of your React app
+  entry: './src/index.js',
   output: {
-    path: path.resolve(__dirname, 'dist'), // Output directory
-    filename: 'index.js', // Output file name
-    libraryTarget: 'commonjs2', // Export as a CommonJS module
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'index.js',
+    libraryTarget: 'commonjs2',
   },
   module: {
     rules: [
       {
-        test: /\.(js|jsx)$/, // Transpile JS/JSX files
+        test: /\.(js|jsx)$/,
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
         },
       },
       {
-        test: /\.css$/, // Optionally handle CSS files
+        test: /\.css$/,
         use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.svg$/, // Handle SVG files
+        use: ['@svgr/webpack'],
       },
     ],
   },
-  externals: [nodeExternals()], // Exclude node_modules from the bundle
+  externals: [nodeExternals()],
   resolve: {
-    extensions: ['.js', '.jsx'], // Resolve these file extensions
+    extensions: ['.js', '.jsx'],
   },
 };
