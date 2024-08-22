@@ -3,8 +3,16 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-const baseConfig = {
+module.exports = {
   entry: './src/index.tsx',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'index.esm.js',
+    library: {
+      type: 'module',
+    },
+    module: true,
+  },
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
   },
@@ -36,41 +44,7 @@ const baseConfig = {
     minimizer: [new TerserPlugin()],
   },
   devtool: 'source-map',
-};
-
-const umdConfig = {
-  ...baseConfig,
-  output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'index.umd.js',
-    library: 'MyPackage',
-    libraryTarget: 'umd',
-    globalObject: 'this',
-    umdNamedDefine: true,
-  },
-};
-
-const cjsConfig = {
-  ...baseConfig,
-  output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'index.cjs.js',
-    libraryTarget: 'commonjs2',
-  },
-};
-
-const esmConfig = {
-  ...baseConfig,
-  output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'index.esm.js',
-    library: {
-      type: 'module',
-    },
-  },
   experiments: {
     outputModule: true,
   },
 };
-
-module.exports = [umdConfig, cjsConfig, esmConfig];
