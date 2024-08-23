@@ -43,3 +43,17 @@ export default defineConfig({
     },
   },
 });
+
+
+{
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "webpack --config ./apps/my-app/webpack.config.js"
+        ]
+      }
+    }
+  }
+}
