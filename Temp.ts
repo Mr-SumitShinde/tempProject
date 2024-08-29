@@ -1,59 +1,9 @@
-{
-  "root": "apps/my-app",
-  "sourceRoot": "apps/my-app/src",
-  "projectType": "application",
-  "targets": {
-    "build": {
-      "executor": "@nrwl/web:build",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/apps/my-app",
-        "index": "apps/my-app/src/index.html",
-        "main": "apps/my-app/src/main.tsx",
-        "tsConfig": "apps/my-app/tsconfig.app.json",
-        "assets": ["apps/my-app/src/favicon.ico", "apps/my-app/src/assets"],
-        "styles": ["apps/my-app/src/styles.css"],
-        "scripts": []
-      }
-    }
-  }
-}
+# Replace these with your Bitbucket credentials and workspace details
+BITBUCKET_USER="your_username"
+BITBUCKET_PASSWORD="your_password"
+BITBUCKET_WORKSPACE="your_workspace"
 
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    lib: {
-      entry: path.resolve(__dirname, 'src/index.tsx'),  // Adjust to your entry point
-      name: 'MyPackage',
-      fileName: (format) => `my-package.${format}.js`,
-    },
-    rollupOptions: {
-      // Make sure to externalize dependencies that you do not want to bundle
-      external: ['react', 'react-dom'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-        },
-      },
-    },
-  },
-});
-
-
-{
-  "targets": {
-    "build": {
-      "executor": "nx:run-commands",
-      "options": {
-        "commands": [
-          "webpack --config ./apps/my-app/webpack.config.js"
-        ]
-      }
-    }
-  }
-}
+# Create a new Bitbucket repository using the input project name
+curl -u $BITBUCKET_USER:$BITBUCKET_PASSWORD -X POST -H "Content-Type: application/json" \
+https://api.bitbucket.org/2.0/repositories/$BITBUCKET_WORKSPACE/$PROJECT_NAME \
+-d '{"scm": "git", "is_private": "true"}'
