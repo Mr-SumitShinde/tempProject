@@ -119,3 +119,45 @@ else
     echo "Failed to create repository."
     exit 1
 fi
+
+
+
+#!/bin/bash
+
+BITBUCKET_TOKEN="your-bitbucket-token"
+BITBUCKET_USER="your-bitbucket-username"
+REPO_DESCRIPTION="A new repository created via Jenkins"
+
+REPO_NAME="${REPO_NAME}"
+
+if [ -z "$REPO_NAME" ]; then
+    echo "Error: No repository name provided."
+    exit 1
+fi
+
+BITBUCKET_API_URL="https://api.bitbucket.org/2.0/repositories/${BITBUCKET_USER}/${REPO_NAME}"
+
+# Debug: Output the URL and parameters
+echo "Making request to: $BITBUCKET_API_URL"
+
+response=$(curl -s -w "\nHTTP_CODE: %{http_code}\n" -X POST "$BITBUCKET_API_URL" \
+    -H "Authorization: Bearer $BITBUCKET_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "scm": "git",
+        "is_private": true,
+        "description": "'"${REPO_DESCRIPTION}"'"
+    }')
+
+echo "$response"
+
+# Extract HTTP status code
+http_code=$(echo "$response" | grep "HTTP_CODE:" | awk '{print $2}')
+
+# Check if the repository was created successfully
+if [ "$http_code" -eq 201 ]; then
+    echo "Repository '${REPO_NAME}' created successfully."
+else
+    echo "Failed to create repository. HTTP Status Code: $http_code"
+    exit 1
+fi
