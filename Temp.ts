@@ -1,34 +1,50 @@
-export interface RetryOptions {
-  retries: number;
-  delay: number;
-  retryCondition?: (error: any, attempt: number) => boolean;
-}
+async request(config: ValpreAPIConfig): Promise<Response> {
+  // Merge defaults with the incoming config
+  config = { ...this.defaults, ...config };
 
-export async function retryRequest(
-  requestFn: () => Promise<Response>,
-  { retries, delay, retryCondition }: RetryOptions
-): Promise<Response> {
-  let lastError: any;
+  // Apply request interceptors synchronously
+  this.interceptors.request.forEach(interceptor => {
+    config = interceptor.fulfilled(config) || config;
+  });
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      return await requestFn();
-    } catch (err) {
-      lastError = err;
+  if (config.cancelToken) {
+    config.signal = config.cancelToken.signal;
+  }
 
-      // Check if this was the last attempt or if a custom retry condition is provided and fails
-      if (attempt === retries || (retryCondition && !retryCondition(err, attempt))) {
-        throw lastError;
+  applyCSRFToken(config);
+
+  // Build URL with query params
+  config.url = buildURL(config.url!, config.params);
+
+  let response: Response;
+
+  if (typeof window === 'undefined') {
+    // Node.js environment
+    response = await this.httpAdapter(config);
+  } else {
+    // Browser environment
+    if (config.onUploadProgress) {
+      response = await sendRequestWithProgress(config);
+    } else {
+      response = await fetch(config.url!, config);
+
+      // Handle download progress
+      if (config.onDownloadProgress) {
+        response = trackDownloadProgress(response, config.onDownloadProgress);
       }
-
-      // Log retry attempt (optional)
-      console.log(`Retry attempt ${attempt + 1} failed: ${err.message}`);
-
-      // Exponential backoff logic
-      await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, attempt)));
     }
   }
 
-  // This line should never be reached, but is here to satisfy TypeScript's strict return checks.
-  throw new Error('Unexpected error in retry logic');
+  // Handle HTTP status errors
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+
+  response = await transformData(response, config);
+
+  this.interceptors.response.forEach(interceptor => {
+    response = interceptor.fulfilled(response) || response;
+  });
+
+  return response;
 }
