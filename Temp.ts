@@ -1,16 +1,15 @@
-export class ValpreAPIError extends Error {
-    public config: any;
-    public request?: any;
-    public response?: Response;
+export const defaults: ValpreAPIConfig = {
+    headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+    },
+    method: 'GET',
+    timeout: 0, // Default no timeout
+    withCredentials: false,
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN'
+};
 
-    constructor(message: string, config: any, request?: any, response?: Response) {
-        super(message);
-        this.config = config;
-        this.request = request;
-        this.response = response;
-    }
-}
-
-export function createError(message: string, config: any, request?: any, response?: Response) {
-    return new ValpreAPIError(message, config, request, response);
+export function setDefaults(newDefaults: Partial<ValpreAPIConfig>): void {
+    Object.assign(defaults, newDefaults);
 }
