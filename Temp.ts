@@ -4,7 +4,7 @@ import { InterceptorManager } from '../interceptors';
 import { CancelToken } from '../cancelToken';
 import * as Methods from './methods';
 import * as InstanceMethods from './instanceMethods';
-import * as AxiosLikeMethods from './axiosLikeMethods';
+import * as UtilityMethods from './utilityMethods';
 
 export class ValpreAPI {
     defaults: ValpreAPIConfig;
@@ -24,14 +24,10 @@ export class ValpreAPI {
     }
 
     request(config: ValpreAPIConfig): Promise<Response> {
-        return this
-
-
-request(config: ValpreAPIConfig): Promise<Response> {
         return this.adapter(config);
     }
 
-    // HTTP methods - connecting to instance specific methods
+    // HTTP methods - connecting to instance-specific methods
     get(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
         return InstanceMethods.instanceGet.call(this, url, config);
     }
@@ -60,19 +56,19 @@ request(config: ValpreAPIConfig): Promise<Response> {
         return InstanceMethods.instanceOptions.call(this, url, config);
     }
 
-    // Axios-like utility methods
+    // Utility methods
     static setDefaults(newDefaults: Partial<ValpreAPIConfig>): void {
-        AxiosLikeMethods.setGlobalDefaults(newDefaults);
+        UtilityMethods.setGlobalDefaults(newDefaults);
     }
 
     static create(instanceConfig: ValpreAPIConfig): ValpreAPI {
-        return AxiosLikeMethods.createInstance(instanceConfig);
+        return UtilityMethods.createInstance(instanceConfig);
     }
 
     static CancelToken = CancelToken;
 
     static isValpreAPIError(error: any): error is ValpreAPIError {
-        return AxiosLikeMethods.isValpreAPIError(error);
+        return UtilityMethods.isValpreAPIError(error);
     }
 
     // Concurrency utilities
