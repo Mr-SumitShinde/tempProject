@@ -1,7 +1,7 @@
 export interface ValpreAPIConfig extends RequestInit {
   url?: string;
   params?: Record<string, any>;
-  csrfToken?: string;  // No null, only string or undefined
+  csrfToken?: string | null;  // Allowing null as a valid value
   cancelToken?: {
     signal: AbortSignal;
   };
@@ -19,5 +19,5 @@ export const defaults: ValpreAPIConfig = {
     Accept: 'application/json',
   },
   method: 'GET',
-  csrfToken: undefined,  // Or omit this line entirely
+  csrfToken: null,  // Valid as null is allowed
 };
