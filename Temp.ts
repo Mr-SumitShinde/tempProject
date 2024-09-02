@@ -1,30 +1,33 @@
-import { ValpreAPIConfig } from '../config';
-import { request } from './request';
+import { ValpreAPI } from './valpreAPI';
 
-export function get(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-    return request({ ...config, method: 'GET', url });
+export function instanceRequest(this: ValpreAPI, config: ValpreAPIConfig): Promise<Response> {
+    return this.request(config);
 }
 
-export function post(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-    return request({ ...config, method: 'POST', url, body: JSON.stringify(data) });
+export function instanceGet(this: ValpreAPI, url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+    return this.get(url, config);
 }
 
-export function put(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-    return request({ ...config, method: 'PUT', url, body: JSON.stringify(data) });
+export function instancePost(this: ValpreAPI, url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+    return this.post(url, data, config);
 }
 
-export function del(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-    return request({ ...config, method: 'DELETE', url });
+export function instancePut(this: ValpreAPI, url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+    return this.put(url, data, config);
 }
 
-export function patch(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-    return request({ ...config, method: 'PATCH', url, body: JSON.stringify(data) });
+export function instanceDelete(this: ValpreAPI, url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+    return this.delete(url, config);
 }
 
-export function head(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-    return request({ ...config, method: 'HEAD', url });
+export function instancePatch(this: ValpreAPI, url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+    return this.patch(url, data, config);
 }
 
-export function options(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-    return request({ ...config, method: 'OPTIONS', url });
+export function instanceHead(this: ValpreAPI, url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+    return this.head(url, config);
+}
+
+export function instanceOptions(this: ValpreAPI, url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+    return this.options(url, config);
 }
