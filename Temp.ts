@@ -25,3 +25,64 @@ export class ValpreAPI {
 
     request(config: ValpreAPIConfig): Promise<Response> {
         return this
+
+
+request(config: ValpreAPIConfig): Promise<Response> {
+        return this.adapter(config);
+    }
+
+    // HTTP methods - connecting to instance specific methods
+    get(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instanceGet.call(this, url, config);
+    }
+
+    post(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instancePost.call(this, url, data, config);
+    }
+
+    put(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instancePut.call(this, url, data, config);
+    }
+
+    delete(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instanceDelete.call(this, url, config);
+    }
+
+    patch(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instancePatch.call(this, url, data, config);
+    }
+
+    head(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instanceHead.call(this, url, config);
+    }
+
+    options(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instanceOptions.call(this, url, config);
+    }
+
+    // Axios-like utility methods
+    static setDefaults(newDefaults: Partial<ValpreAPIConfig>): void {
+        AxiosLikeMethods.setGlobalDefaults(newDefaults);
+    }
+
+    static create(instanceConfig: ValpreAPIConfig): ValpreAPI {
+        return AxiosLikeMethods.createInstance(instanceConfig);
+    }
+
+    static CancelToken = CancelToken;
+
+    static isValpreAPIError(error: any): error is ValpreAPIError {
+        return AxiosLikeMethods.isValpreAPIError(error);
+    }
+
+    // Concurrency utilities
+    static all = (promises: Array<Promise<any>>): Promise<any[]> => {
+        return Promise.all(promises);
+    };
+
+    static spread = (callback: Function): (arr: any[]) => any => {
+        return function wrap(arr: any[]) {
+            return callback(...arr);
+        };
+    };
+}
