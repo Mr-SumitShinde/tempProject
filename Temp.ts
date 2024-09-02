@@ -1,51 +1,44 @@
-export type FulfilledFn<V> = (value: V) => V | Promise<V>;
-export type RejectedFn = (error: any) => any;
+async request(config: ValpreAPIConfig): Promise<Response> {
+  // Run request interceptors
+  config = await this.interceptors.request.run(config);
 
-export class InterceptorManager<V> {
-  private handlers: Array<{ fulfilled: FulfilledFn<V>; rejected?: RejectedFn }> = [];
-
-  // Adds an interceptor to the stack
-  use(fulfilled: FulfilledFn<V>, rejected?: RejectedFn): number {
-    this.handlers.push({ fulfilled, rejected });
-    return this.handlers.length - 1;
+  if (config.cancelToken) {
+    config.signal = config.cancelToken.signal;
   }
 
-  // Removes an interceptor by id
-  eject(id: number): void {
-    if (this.handlers[id]) {
-      this.handlers[id] = null as any;
-    }
-  }
+  applyCSRFToken(config);
 
-  // Iterates through each handler synchronously
-  forEach(fn: (handler: { fulfilled: FulfilledFn<V>; rejected?: RejectedFn }) => void): void {
-    this.handlers.forEach(handler => {
-      if (handler !== null) {
-        fn(handler);
-      }
-    });
-  }
+  // Build URL with query params
+  config.url = buildURL(config.url!, config.params);
 
-  // Processes all interceptors synchronously or asynchronously
-  async run(config: V): Promise<V> {
-    let modifiedConfig = config;
+  let response: Response;
 
-    for (const handler of this.handlers) {
-      if (handler.fulfilled) {
-        try {
-          // Ensure that if the fulfilled function returns a promise, it gets awaited
-          modifiedConfig = await handler.fulfilled(modifiedConfig);
-        } catch (error) {
-          // If a rejection handler exists, use it, otherwise rethrow the error
-          if (handler.rejected) {
-            handler.rejected(error);
-          } else {
-            throw error;
-          }
-        }
+  if (typeof window === 'undefined') {
+    // Node.js environment
+    response = await this.httpAdapter(config);
+  } else {
+    // Browser environment
+    if (config.onUploadProgress) {
+      response = await sendRequestWithProgress(config);
+    } else {
+      response = await fetch(config.url!, config);
+
+      // Handle download progress
+      if (config.onDownloadProgress) {
+        response = trackDownloadProgress(response, config.onDownloadProgress);
       }
     }
-
-    return modifiedConfig;
   }
+
+  // Handle HTTP status errors
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+
+  response = await transformData(response, config);
+
+  // Run response interceptors
+  response = await this.interceptors.response.run(response);
+
+  return response;
 }
