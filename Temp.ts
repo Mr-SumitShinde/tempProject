@@ -1,141 +1,142 @@
-import { InterceptorManager } from './interceptors';
-import { CancelToken } from './cancelToken';
-import { transformData } from './utils/transformData';
-import { retryRequest } from './utils/retry';
-import { applyCSRFToken } from './utils/csurf';
-import { trackDownloadProgress, sendRequestWithProgress } from './utils/progress';
-import { buildURL } from './utils/url';
-import { all, spread } from './utils/concurrent';
-import { defaults, ValpreAPIConfig } from './config';
-import http from 'http';
-import https from 'https';
-import { URL } from 'url';
+import { ValpreAPIConfig } from '../config';
 
-export class ValpreAPI {
-  defaults: ValpreAPIConfig;
-  interceptors: {
-    request: InterceptorManager<ValpreAPIConfig>;
-    response: InterceptorManager<Response>;
-  };
+export async function transformData(response: Response, config: ValpreAPIConfig): Promise<Response> {
+  let data;
+  const contentType = response.headers.get('content-type') || '';
 
-  constructor(config: ValpreAPIConfig = {}) {
-    this.defaults = { ...defaults, ...config };
-    this.interceptors = {
-      request: new InterceptorManager<ValpreAPIConfig>(),
-      response: new InterceptorManager<Response>(),
-    };
+  if (config.responseType) {
+    switch (config.responseType) {
+      case 'json':
+        data = await response.json();
+        break;
+      case 'blob':
+        data = await response.blob();
+        break;
+      case 'arrayBuffer':
+        data = await response.arrayBuffer();
+        break;
+      case 'text':
+        data = await response.text();
+        break;
+      default:
+        data = await response.text(); // Default to text
+    }
+  } else {
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else if (contentType.includes('text/')) {
+      data = await response.text();
+    } else if (contentType.includes('application/octet-stream')) {
+      data = await response.arrayBuffer();
+    } else {
+      data = await response.blob(); // Fallback to blob for other types
+    }
   }
 
-  async request(config: ValpreAPIConfig): Promise<Response> {
-    config = { ...this.defaults, ...config };
+  (response as any).data = data;
+  return response;
+}
 
-    this.interceptors.request.forEach(interceptor => {
-      config = interceptor.fulfilled(config) || config;
-    });
 
-    if (config.cancelToken) {
-      config.signal = config.cancelToken.signal;
+URL 
+
+export function buildURL(url: string, params?: Record<string, any>): string {
+  if (!params) return url;
+
+  const searchParams = new URLSearchParams();
+
+  Object.keys(params).forEach(key => {
+    const value = params[key];
+    if (Array.isArray(value)) {
+      value.forEach(val => searchParams.append(key, val.toString()));
+    } else if (value !== undefined && value !== null) {
+      searchParams.append(key, value.toString());
     }
+  });
 
-    applyCSRFToken(config);
+  const queryString = searchParams.toString();
+  return queryString ? `${url}?${queryString}` : url;
+}
 
-    // Build URL with query params
-    config.url = buildURL(config.url!, config.params);
 
-    let response: Response;
+concurrent
 
-    if (typeof window === 'undefined') {
-      // Node.js environment
-      response = await this.httpAdapter(config);
-    } else {
-      // Browser environment
-      if (config.onUploadProgress) {
-        response = await sendRequestWithProgress(config);
-      } else {
-        response = await fetch(config.url!, config);
+export function all(promises: Promise<any>[]): Promise<any[]> {
+  return Promise.all(promises);
+}
 
-        // Handle download progress
-        if (config.onDownloadProgress) {
-          response = trackDownloadProgress(response, config.onDownloadProgress);
-        }
-      }
-    }
+export function spread(callback: (...args: any[]) => any): (arr: any[]) => any {
+  return (arr) => callback(...arr);
+}
 
-    // Handle HTTP status errors
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
 
-    response = await transformData(response, config);
 
-    this.interceptors.response.forEach(interceptor => {
-      response = interceptor.fulfilled(response) || response;
-    });
+progress
 
+export function trackDownloadProgress(response: Response, onProgress: (progressEvent: ProgressEvent) => void): Response {
+  const contentLength = response.headers.get('Content-Length');
+  if (!contentLength) {
     return response;
   }
 
-  private async httpAdapter(config: ValpreAPIConfig): Promise<Response> {
-    return new Promise((resolve, reject) => {
-      const parsedUrl = new URL(config.url!);
-      const isHttps = parsedUrl.protocol === 'https:';
-      const options = {
-        hostname: parsedUrl.hostname,
-        port: parsedUrl.port,
-        path: parsedUrl.pathname + parsedUrl.search,
-        method: config.method,
-        headers: config.headers,
-        agent: config.agent,
-      };
+  const total = parseInt(contentLength, 10);
+  let loaded = 0;
 
-      const requestModule = isHttps ? https : http;
-      const req = requestModule.request(options, (res) => {
-        let body = '';
+  const reader = response.body?.getReader();
 
-        res.on('data', (chunk) => {
-          body += chunk;
+  const stream = new ReadableStream({
+    start(controller) {
+      function push() {
+        reader?.read().then(({ done, value }) => {
+          if (done) {
+            controller.close();
+            return;
+          }
+          loaded += value?.length || 0;
+          onProgress({
+            loaded,
+            total,
+            lengthComputable: true,
+          } as ProgressEvent);
+          controller.enqueue(value);
+          push();
         });
-
-        res.on('end', () => {
-          const response = new Response(body, {
-            status: res.statusCode || 0,
-            statusText: res.statusMessage || '',
-            headers: new Headers(res.headers as Record<string, string>),
-          });
-          resolve(response);
-        });
-      });
-
-      req.on('error', (err) => {
-        reject(err);
-      });
-
-      if (config.body) {
-        req.write(config.body);
       }
 
-      req.end();
-    });
-  }
+      push();
+    },
+  });
 
-  get(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-    return this.request({ ...config, method: 'GET', url });
-  }
-
-  post(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-    return this.request({ ...config, method: 'POST', url, body: JSON.stringify(data) });
-  }
-
-  // Other HTTP methods...
-
-  static CancelToken = CancelToken;
-
-  static create(instanceConfig: ValpreAPIConfig): ValpreAPI {
-    return new ValpreAPI(instanceConfig);
-  }
-
-  static all = all;
-  static spread = spread;
+  return new Response(stream, { headers: response.headers });
 }
 
-export default ValpreAPI;
+export async function sendRequestWithProgress(config: ValpreAPIConfig): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.open(config.method || 'GET', config.url!, true);
+
+    // Set headers
+    if (config.headers) {
+      Object.keys(config.headers).forEach((key) => {
+        xhr.setRequestHeader(key, (config.headers as any)[key]);
+      });
+    }
+
+    if (config.onUploadProgress) {
+      xhr.upload.onprogress = config.onUploadProgress;
+    }
+
+    xhr.onload = () => {
+      resolve(new Response(xhr.responseText, {
+        status: xhr.status,
+        statusText: xhr.statusText,
+        headers: new Headers(xhr.getAllResponseHeaders()),
+      }));
+    };
+
+    xhr.onerror = () => reject(new Error('Network Error'));
+
+    xhr.send(config.body);
+  });
+}
