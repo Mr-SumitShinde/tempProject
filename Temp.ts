@@ -1,81 +1,15 @@
-import { httpAdapter } from './httpAdapter';
-import { ValpreAPIConfig, defaults } from '../config';
-import { InterceptorManager } from '../interceptors';
-import { CancelToken } from '../cancelToken';
-import * as Methods from './methods';
-import * as InstanceMethods from './instanceMethods';
-import * as UtilityMethods from './utilityMethods';
+import { ValpreAPIConfig } from '../config';
 
-export class ValpreAPI {
-    defaults: ValpreAPIConfig;
-    interceptors: {
-        request: InterceptorManager<ValpreAPIConfig>;
-        response: InterceptorManager<Response>;
-    };
-    private adapter: (config: ValpreAPIConfig) => Promise<Response>;
-
-    constructor(config: ValpreAPIConfig = {}, adapter?: (config: ValpreAPIConfig) => Promise<Response>) {
-        this.defaults = { ...defaults, ...config };
-        this.adapter = adapter || httpAdapter;
-        this.interceptors = {
-            request: new InterceptorManager<ValpreAPIConfig>(),
-            response: new InterceptorManager<Response>(),
-        };
+export function applyCSRFToken(config: ValpreAPIConfig): void {
+    if (config.withCredentials && config.xsrfCookieName) {
+        const xsrfToken = getCookie(config.xsrfCookieName);
+        if (xsrfToken && config.headers) {
+            config.headers[config.xsrfHeaderName!] = xsrfToken;
+        }
     }
+}
 
-    request(config: ValpreAPIConfig): Promise<Response> {
-        return this.adapter(config);
-    }
-
-    get(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instanceGet.call(this, url, config);
-    }
-
-    post(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instancePost.call(this, url, data, config);
-    }
-
-    put(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instancePut.call(this, url, data, config);
-    }
-
-    delete(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instanceDelete.call(this, url, config);
-    }
-
-    patch(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instancePatch.call(this, url, data, config);
-    }
-
-    head(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instanceHead.call(this, url, config);
-    }
-
-    options(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instanceOptions.call(this, url, config);
-    }
-
-    static setDefaults(newDefaults: Partial<ValpreAPIConfig>): void {
-        UtilityMethods.setGlobalDefaults(newDefaults);
-    }
-
-    static create(instanceConfig: ValpreAPIConfig): ValpreAPI {
-        return UtilityMethods.createInstance(instanceConfig);
-    }
-
-    static CancelToken = CancelToken;
-
-    static isValpreAPIError(error: any): error is ValpreAPIError {
-        return UtilityMethods.isValpreAPIError(error);
-    }
-
-    static all = (promises: Array<Promise<any>>): Promise<any[]> => {
-        return Promise.all(promises);
-    };
-
-    static spread = (callback: Function): (arr: any[]) => any => {
-        return function wrap(arr: any[]) {
-            return callback(...arr);
-        };
-    };
+function getCookie(name: string): string | null {
+    const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
+    return match ? decodeURIComponent(match[3]) : null;
 }
