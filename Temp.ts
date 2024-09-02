@@ -1,77 +1,107 @@
-export function trackUploadProgress(xhr: XMLHttpRequest, onUploadProgress: (progressEvent: ProgressEvent) => void): void {
-    if (xhr.upload && onUploadProgress) {
-        xhr.upload.onprogress = onUploadProgress;
+import { httpAdapter } from './httpAdapter';
+import { ValpreAPIConfig, defaults } from './config';
+import { InterceptorManager } from './interceptors';
+import { CancelToken } from './cancelToken';
+import * as InstanceMethods from './instanceMethods';
+import * as UtilityMethods from './utilityMethods';
+import { applyCSRFToken } from './utils/csurf';
+import { addRetryCapability } from './utils/retry';
+import { sendRequestWithProgress } from './utils/progress';
+import { handleRequestData, handleResponseData } from './utils/jsonHandling';
+import { isFormData, handleFormData } from './utils/formData';
+
+export class ValpreAPI {
+    defaults: ValpreAPIConfig;
+    interceptors: {
+        request: InterceptorManager<ValpreAPIConfig>;
+        response: InterceptorManager<Response>;
+    };
+    private adapter: (config: ValpreAPIConfig) => Promise<Response>;
+
+    constructor(config: ValpreAPIConfig = {}, adapter?: (config: ValpreAPIConfig) => Promise<Response>) {
+        this.defaults = { ...defaults, ...config };
+        this.adapter = adapter || httpAdapter;
+        this.interceptors = {
+            request: new InterceptorManager<ValpreAPIConfig>(),
+            response: new InterceptorManager<Response>(),
+        };
     }
-}
 
-export function trackDownloadProgress(xhr: XMLHttpRequest, onDownloadProgress: (progressEvent: ProgressEvent) => void): void {
-    if (xhr && onDownloadProgress) {
-        xhr.onprogress = onDownloadProgress;
-    }
-}
+    async request(config: ValpreAPIConfig): Promise<Response> {
+        // Apply defaults and interceptors
+        config = { ...this.defaults, ...config };
+        config = await this.interceptors.request.run(config);
 
-export function sendRequestWithProgress(config: RequestInit & { onUploadProgress?: (progressEvent: ProgressEvent) => void, onDownloadProgress?: (progressEvent: ProgressEvent) => void }): Promise<Response> {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+        // Apply CSRF token if necessary
+        applyCSRFToken(config);
 
-        xhr.open(config.method || 'GET', config.url!, true);
-
-        // Set request headers
-        if (config.headers) {
-            Object.keys(config.headers).forEach((key) => {
-                xhr.setRequestHeader(key, config.headers[key]);
-            });
-        }
-
-        // Handle upload progress
-        trackUploadProgress(xhr, config.onUploadProgress!);
-
-        // Handle download progress
-        trackDownloadProgress(xhr, config.onDownloadProgress!);
-
-        xhr.onload = function () {
-            const responseHeaders = xhr.getAllResponseHeaders();
-            const responseData = 'response' in xhr ? xhr.response : xhr.responseText;
-            const response = new Response(responseData, {
-                status: xhr.status,
-                statusText: xhr.statusText,
-                headers: parseHeaders(responseHeaders),
-            });
-            resolve(response);
-        };
-
-        xhr.onerror = function () {
-            reject(new TypeError('Network request failed'));
-        };
-
-        xhr.ontimeout = function () {
-            reject(new TypeError('Network request timed out'));
-        };
-
-        xhr.onabort = function () {
-            reject(new TypeError('Network request was aborted'));
-        };
-
-        if (config.body) {
-            xhr.send(config.body);
+        // Handle form data or JSON data
+        if (isFormData(config.body)) {
+            config.body = handleFormData(config.body);
         } else {
-            xhr.send();
+            config.body = handleRequestData(config.body);
         }
-    });
-}
 
-function parseHeaders(headers: string): Headers {
-    const parsed = new Headers();
-    if (!headers) {
-        return parsed;
+        // Retry logic
+        const requestFn = () => this.adapter(config);
+        const response = await addRetryCapability(config, requestFn);
+
+        // Handle response transformation
+        const transformedResponse = await handleResponseData(response, config.responseType);
+
+        // Run response interceptors
+        return this.interceptors.response.run(transformedResponse);
     }
-    headers.split('\r\n').forEach(function (line) {
-        const parts = line.split(': ');
-        const key = parts.shift();
-        const value = parts.join(': ');
-        if (key) {
-            parsed.append(key, value);
-        }
-    });
-    return parsed;
+
+    get(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instanceGet.call(this, url, config);
+    }
+
+    post(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instancePost.call(this, url, data, config);
+    }
+
+    put(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instancePut.call(this, url, data, config);
+    }
+
+    delete(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instanceDelete.call(this, url, config);
+    }
+
+    patch(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instancePatch.call(this, url, data, config);
+    }
+
+    head(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instanceHead.call(this, url, config);
+    }
+
+    options(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
+        return InstanceMethods.instanceOptions.call(this, url, config);
+    }
+
+    static setDefaults(newDefaults: Partial<ValpreAPIConfig>): void {
+        UtilityMethods.setGlobalDefaults(newDefaults);
+    }
+
+    static create(instanceConfig: ValpreAPIConfig): ValpreAPI {
+        return UtilityMethods.createInstance(instanceConfig);
+    }
+
+    static CancelToken = CancelToken;
+
+    static isValpreAPIError(error: any): error is ValpreAPIError {
+        return UtilityMethods.isValpreAPIError(error);
+    }
+
+    static all = (promises: Array<Promise<any>>): Promise<any[]> => {
+        return Promise.all(promises);
+    };
+
+    static spread = (callback: Function): (arr: any[]) => any => {
+        return function wrap(arr: any[]) {
+            return callback(...arr);
+        };
+    };
 }
