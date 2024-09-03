@@ -1,55 +1,77 @@
-type FulfilledFn<T> = (value: T) => T | Promise<T>;
-type RejectedFn = (error: any) => any;
-
-interface Interceptor<T> {
-    fulfilled: FulfilledFn<T>;
-    rejected?: RejectedFn;
-    priority: number;
+export function trackUploadProgress(xhr: XMLHttpRequest, onUploadProgress: (progressEvent: ProgressEvent<EventTarget>) => void): void {
+    if (xhr.upload && onUploadProgress) {
+        xhr.upload.onprogress = onUploadProgress;
+    }
 }
 
-export class InterceptorManager<T> {
-    private interceptors: Array<Interceptor<T> | null> = [];
-
-    use(fulfilled: FulfilledFn<T>, rejected?: RejectedFn, priority: number = 0): number {
-        const interceptor: Interceptor<T> = { fulfilled, rejected, priority };
-        this.interceptors.push(interceptor);
-        this.sortInterceptors();
-        return this.interceptors.length - 1;
+export function trackDownloadProgress(xhr: XMLHttpRequest, onDownloadProgress: (progressEvent: ProgressEvent<EventTarget>) => void): void {
+    if (xhr && onDownloadProgress) {
+        xhr.onprogress = onDownloadProgress;
     }
+}
 
-    eject(id: number): void {
-        if (this.interceptors[id]) {
-            this.interceptors[id] = null;
+export function sendRequestWithProgress(config: RequestInit & {
+    url: string;
+    onUploadProgress?: (progressEvent: ProgressEvent<EventTarget>) => void;
+    onDownloadProgress?: (progressEvent: ProgressEvent<EventTarget>) => void;
+}): Promise<Response> {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.open(config.method || 'GET', config.url, true);
+
+        if (config.headers) {
+            Object.keys(config.headers).forEach((key) => {
+                xhr.setRequestHeader(key, (config.headers as Record<string, string>)[key]);
+            });
         }
-        this.cleanupInterceptors();
-    }
 
-    private sortInterceptors(): void {
-        this.interceptors.sort((a, b) => {
-            if (a === null) return 1;
-            if (b === null) return -1;
-            return b.priority - a.priority;
-        });
-    }
+        trackUploadProgress(xhr, config.onUploadProgress!);
+        trackDownloadProgress(xhr, config.onDownloadProgress!);
 
-    private cleanupInterceptors(): void {
-        this.interceptors = this.interceptors.filter(interceptor => interceptor !== null);
-    }
+        xhr.onload = function () {
+            const responseHeaders = xhr.getAllResponseHeaders();
+            const responseData = 'responseText' in xhr ? xhr.responseText : xhr.response;
+            const response = new Response(responseData, {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                headers: parseHeaders(responseHeaders),
+            });
+            resolve(response);
+        };
 
-    async run(value: T): Promise<T> {
-        for (const interceptor of this.interceptors) {
-            if (interceptor !== null) {
-                try {
-                    value = await interceptor.fulfilled(value);
-                } catch (error) {
-                    if (interceptor.rejected) {
-                        value = await interceptor.rejected(error);
-                    } else {
-                        throw error;
-                    }
-                }
-            }
+        xhr.onerror = function () {
+            reject(new TypeError('Network request failed'));
+        };
+
+        xhr.ontimeout = function () {
+            reject(new TypeError('Network request timed out'));
+        };
+
+        xhr.onabort = function () {
+            reject(new TypeError('Network request was aborted'));
+        };
+
+        if (config.body) {
+            xhr.send(config.body as Document | Blob | BufferSource | FormData | URLSearchParams | string | ReadableStream<Uint8Array>);
+        } else {
+            xhr.send();
         }
-        return value;
+    });
+}
+
+function parseHeaders(headers: string): Headers {
+    const parsed = new Headers();
+    if (!headers) {
+        return parsed;
     }
+    headers.split('\r\n').forEach(function (line) {
+        const parts = line.split(': ');
+        const key = parts.shift();
+        const value = parts.join(': ');
+        if (key) {
+            parsed.append(key, value);
+        }
+    });
+    return parsed;
 }
