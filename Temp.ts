@@ -1,102 +1,40 @@
-import { httpAdapter } from './httpAdapter';
-import { ValpreAPIConfig, defaults } from './config';
-import { InterceptorManager } from './interceptors';
-import { CancelToken } from './cancelToken';
-import * as InstanceMethods from './instanceMethods';
-import * as UtilityMethods from './utilityMethods';
-import { applyCSRFToken } from './utils/csurf';
-import { addRetryCapability } from './utils/retry';
-import { sendRequestWithProgress } from './utils/progress';
-import { handleRequestData, handleResponseData } from './utils/transformData';
-
-export class ValpreAPI {
-    defaults: ValpreAPIConfig;
-    interceptors: {
-        request: InterceptorManager<ValpreAPIConfig>;
-        response: InterceptorManager<Response>;
+export interface ValpreAPIConfig extends RequestInit {
+    url?: string;
+    baseURL?: string;
+    params?: Record<string, any>;
+    headers?: Record<string, string>;
+    timeout?: number;
+    withCredentials?: boolean;
+    xsrfCookieName?: string;
+    xsrfHeaderName?: string;
+    cancelToken?: {
+        signal: AbortSignal;
     };
-    private adapter: (config: ValpreAPIConfig) => Promise<Response>;
+    onUploadProgress?: (progressEvent: ProgressEvent) => void;
+    onDownloadProgress?: (progressEvent: ProgressEvent) => void;
+    responseType?: 'json' | 'blob' | 'text' | 'arrayBuffer';
+    retries?: number;
+    retryDelay?: number;
+    retryCondition?: (error: any, attempt: number) => boolean;
+    adapter?: (config: ValpreAPIConfig) => Promise<Response>;
+    
+    // New properties for custom transformations
+    transformRequest?: (data: any, headers: Record<string, string>) => any;
+    transformResponse?: (data: any) => any;
+}
 
-    constructor(config: ValpreAPIConfig = {}, adapter?: (config: ValpreAPIConfig) => Promise<Response>) {
-        this.defaults = { ...defaults, ...config };
-        this.adapter = adapter || httpAdapter;
-        this.interceptors = {
-            request: new InterceptorManager<ValpreAPIConfig>(),
-            response: new InterceptorManager<Response>(),
-        };
-    }
+export const defaults: ValpreAPIConfig = {
+    headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+    },
+    method: 'GET',
+    timeout: 0, // Default timeout is 0 (no timeout)
+    withCredentials: false,
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN'
+};
 
-    async request(config: ValpreAPIConfig): Promise<Response> {
-        // Apply defaults and interceptors
-        config = { ...this.defaults, ...config };
-        config = await this.interceptors.request.run(config);
-
-        // Apply CSRF token if necessary
-        applyCSRFToken(config);
-
-        // Handle JSON or other request data with optional custom transformations
-        config.body = handleRequestData(config.body, config.headers as Record<string, string>, config.transformRequest);
-
-        // Retry logic
-        const requestFn = () => this.adapter(config);
-        const response = await addRetryCapability(config, requestFn);
-
-        // Handle response transformation with optional custom transformations
-        const transformedResponse = await handleResponseData(response, config.responseType, config.transformResponse);
-
-        // Run response interceptors
-        return this.interceptors.response.run(transformedResponse);
-    }
-
-    get(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instanceGet.call(this, url, config);
-    }
-
-    post(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instancePost.call(this, url, data, config);
-    }
-
-    put(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instancePut.call(this, url, data, config);
-    }
-
-    delete(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instanceDelete.call(this, url, config);
-    }
-
-    patch(url: string, data: any, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instancePatch.call(this, url, data, config);
-    }
-
-    head(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instanceHead.call(this, url, config);
-    }
-
-    options(url: string, config: ValpreAPIConfig = {}): Promise<Response> {
-        return InstanceMethods.instanceOptions.call(this, url, config);
-    }
-
-    static setDefaults(newDefaults: Partial<ValpreAPIConfig>): void {
-        UtilityMethods.setGlobalDefaults(newDefaults);
-    }
-
-    static create(instanceConfig: ValpreAPIConfig): ValpreAPI {
-        return UtilityMethods.createInstance(instanceConfig);
-    }
-
-    static CancelToken = CancelToken;
-
-    static isValpreAPIError(error: any): error is ValpreAPIError {
-        return UtilityMethods.isValpreAPIError(error);
-    }
-
-    static all = (promises: Array<Promise<any>>): Promise<any[]> => {
-        return Promise.all(promises);
-    };
-
-    static spread = (callback: Function): (arr: any[]) => any => {
-        return function wrap(arr: any[]) {
-            return callback(...arr);
-        };
-    };
+export function setDefaults(newDefaults: Partial<ValpreAPIConfig>): void {
+    Object.assign(defaults, newDefaults);
 }
