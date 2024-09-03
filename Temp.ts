@@ -12,12 +12,18 @@ jest.mock('../interceptors', () => ({
     })),
 }));
 
-// Mocking the global Response object for Node.js environment
+// Fully mocking the global Response and Headers objects for Node.js environment
+global.Headers = jest.fn(() => ({
+    append: jest.fn(),
+    get: jest.fn().mockReturnValue('application/json'), // Mocking 'get' method
+})) as unknown as typeof Headers;
+
 global.Response = jest.fn((body, init) => ({
     body,
     ...init,
     text: () => Promise.resolve(body),
     json: () => Promise.resolve(JSON.parse(body)),
+    headers: new Headers(),
 })) as unknown as typeof Response;
 
 describe('ValpreAPI', () => {
