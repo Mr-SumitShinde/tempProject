@@ -32,8 +32,12 @@ export async function handleResponseData(
         } else {
             data = response;
         }
-    } catch (error) {
-        throw new Error(`Failed to parse response as ${responseType || contentType}: ${error.message}`);
+    } catch (err) {
+        if (err instanceof Error) {
+            throw new Error(`Failed to parse response as ${responseType || contentType}: ${err.message}`);
+        } else {
+            throw new Error(`Failed to parse response as ${responseType || contentType}: Unknown error`);
+        }
     }
 
     if (transformResponse) {
