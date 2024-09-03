@@ -31,7 +31,7 @@ export function sendRequestWithProgress(config: RequestInit & {
 
         xhr.onload = function () {
             const responseHeaders = xhr.getAllResponseHeaders();
-            const responseData = 'responseText' in xhr ? xhr.responseText : xhr.response;
+            const responseData = xhr.responseType === 'text' || !xhr.responseType ? xhr.responseText : xhr.response;
             const response = new Response(responseData, {
                 status: xhr.status,
                 statusText: xhr.statusText,
@@ -53,7 +53,7 @@ export function sendRequestWithProgress(config: RequestInit & {
         };
 
         if (config.body) {
-            xhr.send(config.body as Document | Blob | BufferSource | FormData | URLSearchParams | string | ReadableStream<Uint8Array>);
+            xhr.send(config.body as Document | Blob | BufferSource | FormData | URLSearchParams | string | null);
         } else {
             xhr.send();
         }
