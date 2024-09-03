@@ -194,3 +194,7 @@ describe('ValpreAPI', () => {
 
         expect(transformResponse).toHaveBeenCalledWith(await mockResponse.json());
         expect(response).toEqual({ modified: true
+
+expect(response).toEqual({ modified: true });
+    });
+});
