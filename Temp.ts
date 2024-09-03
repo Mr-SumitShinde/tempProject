@@ -2,6 +2,7 @@ import { ValpreAPI } from '../valpreAPI';
 import { httpAdapter } from '../httpAdapter';
 import { InterceptorManager } from '../interceptors';
 
+// Mocking the httpAdapter and InterceptorManager
 jest.mock('../httpAdapter');
 jest.mock('../interceptors', () => ({
     InterceptorManager: jest.fn().mockImplementation(() => ({
@@ -10,6 +11,14 @@ jest.mock('../interceptors', () => ({
         run: jest.fn((config) => Promise.resolve(config)), // Mock run to return the config unchanged
     })),
 }));
+
+// Mocking the global Response object for Node.js environment
+global.Response = jest.fn((body, init) => ({
+    body,
+    ...init,
+    text: () => Promise.resolve(body),
+    json: () => Promise.resolve(JSON.parse(body)),
+})) as unknown as typeof Response;
 
 describe('ValpreAPI', () => {
     let api: ValpreAPI;
