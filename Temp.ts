@@ -1,231 +1,52 @@
-Here’s the updated documentation for the utility methods in `ValpreAPI` with the requested sequence:
+Certainly! Here is how you can structure the unit test using `describe` blocks for better organization in your test cases. Each `describe` block will group related test cases together.
 
----
+### Updated Test with `describe` Blocks:
 
-## **Utility Methods in `ValpreAPI`**
+```tsx
+import { render, screen } from '@testing-library/react';
+import MyComponent from './MyComponent';
 
-### **Introduction to Utility Methods**
-
-`ValpreAPI` offers several utility methods designed to enhance the flexibility and ease of managing HTTP requests. These methods allow developers to manage request configurations, create new instances, handle multiple concurrent requests, spread results across functions, and identify errors. These features are inspired by other popular libraries but provide a more TypeScript-friendly approach.
-
-Here’s an overview of the utility methods in `ValpreAPI`:
-
-- `create`
-- `setDefault`
-- `isValpreAPIError`
-- `all`
-- `spread`
-
----
-
-### **1. `create`**
-
-The `create` method is used to generate a new instance of the `ValpreAPI` client with custom configuration settings. This is useful when you need multiple instances of `ValpreAPI` with different base configurations (e.g., for different APIs or services).
-
-#### **How It Works**
-- You pass a configuration object (like `baseURL`, `timeout`, etc.) to `create`, and it returns a new instance of `ValpreAPI` that uses those defaults.
-
-#### **Example Usage**
-
-```typescript
-const api = ValpreAPI.create({
-    baseURL: 'https://api.example.com',
-    timeout: 5000,
+// Mocking sessionStorage
+beforeEach(() => {
+  Storage.prototype.getItem = jest.fn();
 });
 
-// Use this instance to make requests
-api.request({
-    url: '/users',
-    method: 'GET'
-}).then((response) => {
-    console.log('User data:', response.data);
-});
-```
+describe('MyComponent', () => {
+  describe('when sessionStorage contains user info', () => {
+    it('should render the user info', () => {
+      // Mock sessionStorage to return some user info
+      const mockUserInfo = JSON.stringify({ name: 'John Doe' });
+      (sessionStorage.getItem as jest.Mock).mockReturnValue(mockUserInfo);
 
-#### **Parameters**
-- **defaultConfig**: An object containing configuration options (e.g., `baseURL`, `headers`, `timeout`).
+      // Render the component
+      render(<MyComponent />);
 
-#### **Return Value**
-- A new instance of `ValpreAPI` with the provided configuration.
+      // Expect the user info to be displayed
+      expect(screen.getByText('User Info: John Doe')).toBeInTheDocument();
+    });
+  });
 
----
+  describe('when sessionStorage does not contain user info', () => {
+    it('should render the fallback message', () => {
+      // Mock sessionStorage to return null
+      (sessionStorage.getItem as jest.Mock).mockReturnValue(null);
 
-### **2. `setDefault`**
+      // Render the component
+      render(<MyComponent />);
 
-The `setDefault` method allows you to modify or extend the default configuration for the current `ValpreAPI` instance. This is helpful when you need to change default settings, such as headers or base URLs, after the instance has been created.
-
-#### **How It Works**
-- You pass a configuration object to `setDefault`, and it merges with the existing default configuration, modifying it as needed.
-
-#### **Example Usage**
-
-```typescript
-const api = ValpreAPI.create({
-    baseURL: 'https://api.example.com',
-    timeout: 5000
-});
-
-// Modify the default configuration
-api.setDefault({
-    timeout: 10000,  // Increase the timeout
-    headers: {
-        'Authorization': 'Bearer new-token'
-    }
-});
-
-// Use the updated instance to make requests
-api.request({
-    url: '/users',
-    method: 'GET'
-}).then((response) => {
-    console.log('User data:', response.data);
+      // Expect the fallback text to be displayed
+      expect(screen.getByText('No User Info')).toBeInTheDocument();
+    });
+  });
 });
 ```
 
-#### **Parameters**
-- **defaultConfig**: An object containing configuration options (e.g., `headers`, `timeout`).
+### Explanation:
 
-#### **Return Value**
-- The current instance of `ValpreAPI` with the updated default configuration.
+- **`describe('MyComponent')`:** This block groups all tests related to the `MyComponent`.
+- **Nested `describe` blocks:** We use two nested `describe` blocks to differentiate the cases where sessionStorage contains user info and when it doesn't.
+  - **`describe('when sessionStorage contains user info')`:** Contains the test for the scenario where there is data in `sessionStorage`.
+  - **`describe('when sessionStorage does not contain user info')`:** Contains the test for the scenario where `sessionStorage` is empty or does not contain data.
+- **`it` blocks:** These are the individual test cases. Each `it` block describes what the test is validating.
 
----
-
-### **3. `isValpreAPIError`**
-
-The `isValpreAPIError` method allows you to identify whether an error was generated by `ValpreAPI`. This is useful when handling errors, as it helps distinguish between errors from `ValpreAPI` and those from other parts of your application.
-
-#### **How It Works**
-- You pass an error object to `isValpreAPIError`, and it returns `true` if the error is a `ValpreAPI` error, or `false` if it is not.
-
-#### **Example Usage**
-
-```typescript
-api.request({
-    url: '/some-endpoint',
-    method: 'GET'
-}).catch((error) => {
-    if (ValpreAPI.isValpreAPIError(error)) {
-        console.error('ValpreAPI-specific error:', error.message);
-    } else {
-        console.error('Non-ValpreAPI error:', error.message);
-    }
-});
-```
-
-#### **Parameters**
-- **error**: The error object to check.
-
-#### **Return Value**
-- `true` if the error is a `ValpreAPIError`.
-- `false` if the error is not from `ValpreAPI`.
-
----
-
-### **4. `all`**
-
-The `all` method is used to execute multiple asynchronous requests concurrently. It functions similarly to JavaScript’s native `Promise.all()`, but it’s specifically designed for working with `ValpreAPI` requests.
-
-#### **How It Works**
-- You pass an array of promises (usually API requests) to `all`, and it resolves when all the requests are complete, returning the results in an array.
-
-#### **Example Usage**
-
-```typescript
-ValpreAPI.all([
-    api.request({ url: '/users', method: 'GET' }),
-    api.request({ url: '/posts', method: 'GET' })
-]).then((responses) => {
-    const [usersResponse, postsResponse] = responses;
-    console.log('Users:', usersResponse.data);
-    console.log('Posts:', postsResponse.data);
-}).catch((error) => {
-    console.error('One of the requests failed:', error);
-});
-```
-
-#### **Parameters**
-- **promises**: An array of promises (usually API requests).
-
-#### **Return Value**
-- Resolves with an array of responses if all requests succeed.
-- Rejects with an error if any request fails.
-
----
-
-### **5. `spread`**
-
-The `spread` method allows you to spread the results of `ValpreAPI.all()` into individual function arguments. This is useful when working with multiple concurrent requests and avoids the need to destructure arrays manually.
-
-#### **How It Works**
-- After using `ValpreAPI.all()`, apply `ValpreAPI.spread()` to spread the results into individual arguments for the callback function.
-
-#### **Example Usage**
-
-```typescript
-ValpreAPI.all([
-    api.request({ url: '/users', method: 'GET' }),
-    api.request({ url: '/posts', method: 'GET' })
-]).then(ValpreAPI.spread((usersResponse, postsResponse) => {
-    console.log('Users:', usersResponse.data);
-    console.log('Posts:', postsResponse.data);
-})).catch((error) => {
-    console.error('One of the requests failed:', error);
-});
-```
-
-#### **Parameters**
-- **callback**: A function that receives the spread results from multiple promises.
-
-#### **Return Value**
-- A function that takes an array of results and applies them as individual arguments to the provided callback.
-
----
-
-### **Complete Example Using Utility Methods**
-
-```typescript
-const api = ValpreAPI.create({
-    baseURL: 'https://api.example.com',
-    timeout: 5000
-});
-
-// Update default configuration
-api.setDefault({
-    headers: {
-        'Authorization': 'Bearer token'
-    }
-});
-
-// Perform concurrent requests
-ValpreAPI.all([
-    api.request({ url: '/users', method: 'GET' }),
-    api.request({ url: '/posts', method: 'GET' })
-]).then(ValpreAPI.spread((usersResponse, postsResponse) => {
-    console.log('Users:', usersResponse.data);
-    console.log('Posts:', postsResponse.data);
-})).catch((error) => {
-    if (ValpreAPI.isValpreAPIError(error)) {
-        console.error('ValpreAPI error:', error.message);
-    } else {
-        console.error('General error:', error.message);
-    }
-});
-```
-
----
-
-### **Summary**
-
-`ValpreAPI` offers powerful utility methods that make managing multiple API requests, error handling, and default configurations easier and more streamlined:
-
-- **`create`**: Create a new `ValpreAPI` instance with custom configurations.
-- **`setDefault`**: Modify or extend the default configuration of an existing `ValpreAPI` instance.
-- **`isValpreAPIError`**: Identify whether an error originated from `ValpreAPI`.
-- **`all`**: Execute multiple requests concurrently and wait for all of them to complete.
-- **`spread`**: Spread the results of concurrent requests across function arguments for easier handling.
-
-These utility methods enhance the flexibility and ease of working with API requests, making `ValpreAPI` a robust solution for managing complex HTTP request workflows.
-
---- 
-
-This documentation provides a clear and comprehensive overview of the utility methods in the `ValpreAPI` library, including examples of how to use each method effectively.
+This structure allows you to group similar tests logically and makes the test suite easier to understand and maintain.
