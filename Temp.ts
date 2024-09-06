@@ -1,251 +1,188 @@
-Here’s a detailed documentation for the `CancelToken` feature in the `ValpreAPI` library:
+Here’s a detailed documentation for the **Utility Methods** in the `ValpreAPI` library:
 
 ---
 
-## **`CancelToken` in `ValpreAPI`**
+## **Utility Methods in `ValpreAPI`**
 
-### **Introduction to `CancelToken`**
+### **Introduction to Utility Methods**
 
-`CancelToken` in `ValpreAPI` allows you to cancel requests that have not yet completed. This is useful in scenarios where you want to abort an HTTP request due to user interactions or changing conditions, such as when a user navigates away from a page or when an API call becomes unnecessary.
+`ValpreAPI` provides several built-in utility methods to help developers handle common asynchronous tasks and manage request and response handling more effectively. These methods are similar to those found in popular HTTP libraries and are designed to simplify managing concurrent requests, spreading results across multiple functions, and identifying `ValpreAPI`-specific errors.
 
-By using `CancelToken`, you can ensure that resources are not wasted on requests that are no longer needed, improving the performance and responsiveness of your application.
-
----
-
-### **How `CancelToken` Works**
-
-- **Creating a Token**: You can create a `CancelToken` instance using `ValpreAPI.CancelToken.source()`. This generates a token and a `cancel` function that can be called to abort the request.
-  
-- **Attaching a Token to a Request**: The generated token is attached to the request using the `cancelToken` property in the request configuration.
-
-- **Canceling a Request**: You can call the `cancel` function at any time to cancel the request. Once a request is canceled, it will not be completed, and an error will be thrown, which you can handle accordingly.
+The key utility methods available in `ValpreAPI` are:
+- `all`
+- `spread`
+- `isValpreAPIError`
 
 ---
 
-### **Using `CancelToken` to Cancel Requests**
+### **1. `all`**
 
-#### **1. Creating and Using a `CancelToken`**
+The `all` method is used to execute multiple asynchronous requests concurrently. It works similarly to JavaScript’s native `Promise.all()`. By using `ValpreAPI.all()`, you can send multiple requests at once and wait for all of them to complete.
 
-To cancel a request, you need to create a `CancelToken` and attach it to the request configuration.
+#### **How It Works**
+- You pass an array of promises (usually API requests) to `all`.
+- The method will resolve when all the promises in the array have completed, returning the results in an array.
+- If any of the requests fail, the entire `all` call will reject with the error of the first failed promise.
+
+#### **Example Usage**
 
 ```typescript
 const api = ValpreAPI.create({
     baseURL: 'https://api.example.com',
-    timeout: 5000,
 });
 
-// Create a cancel token source
-const source = ValpreAPI.CancelToken.source();
-
-// Make a request with the cancel token
-api.request({
-    url: '/endpoint',
-    method: 'GET',
-    cancelToken: source.token,
-}).then((response) => {
-    console.log('Response received:', response.data);
+// Perform multiple requests concurrently
+ValpreAPI.all([
+    api.request({ url: '/users', method: 'GET' }),
+    api.request({ url: '/posts', method: 'GET' }),
+    api.request({ url: '/comments', method: 'GET' })
+]).then((responses) => {
+    const [usersResponse, postsResponse, commentsResponse] = responses;
+    console.log('Users:', usersResponse.data);
+    console.log('Posts:', postsResponse.data);
+    console.log('Comments:', commentsResponse.data);
 }).catch((error) => {
-    if (ValpreAPI.isValpreAPIError(error) && error.message === 'Request canceled') {
-        console.log('Request was canceled:', error.message);
-    } else {
-        console.error('Request failed:', error.message);
-    }
+    console.error('One of the requests failed:', error);
+});
+```
+
+#### **Parameters**
+- **promises**: An array of promises, typically API requests.
+
+#### **Return Value**
+- Resolves with an array containing the results of all successful requests.
+- Rejects if any of the requests fail, returning the first error encountered.
+
+---
+
+### **2. `spread`**
+
+The `spread` method allows you to pass the results of `ValpreAPI.all()` as individual arguments to a function. This is useful when working with multiple concurrent requests, as it lets you spread the results into separate variables instead of working with an array.
+
+#### **How It Works**
+- After using `ValpreAPI.all()`, you can apply `ValpreAPI.spread()` to spread the results into individual arguments for the callback function.
+  
+#### **Example Usage**
+
+```typescript
+const api = ValpreAPI.create({
+    baseURL: 'https://api.example.com',
 });
 
-// Cancel the request
-source.cancel('Request canceled by the user.');
+// Perform concurrent requests and spread the results
+ValpreAPI.all([
+    api.request({ url: '/users', method: 'GET' }),
+    api.request({ url: '/posts', method: 'GET' })
+]).then(ValpreAPI.spread((usersResponse, postsResponse) => {
+    console.log('Users:', usersResponse.data);
+    console.log('Posts:', postsResponse.data);
+})).catch((error) => {
+    console.error('Request failed:', error);
+});
 ```
 
-- **`CancelToken.source()`**: Creates a new `CancelToken` along with a `cancel` function.
-- **`cancelToken`**: The token that is attached to the request configuration.
-- **`source.cancel(message)`**: The function used to cancel the request. You can provide a custom message to indicate why the request was canceled.
+#### **Parameters**
+- **callback**: A function that accepts the spread results from multiple promises.
 
-#### **2. Handling Canceled Requests**
-
-When a request is canceled, a special error is thrown, which you can handle using `try-catch` or `.catch()` in a promise chain. The error message will include the reason for cancellation.
-
-Example of error handling:
-
-```typescript
-try {
-    const response = await api.request({
-        url: '/endpoint',
-        method: 'GET',
-        cancelToken: source.token
-    });
-    console.log('Response:', response.data);
-} catch (error) {
-    if (ValpreAPI.isValpreAPIError(error) && error.message === 'Request canceled by the user.') {
-        console.log('Request was canceled:', error.message);
-    } else {
-        console.error('Error occurred:', error.message);
-    }
-}
-```
+#### **Return Value**
+- A function that takes the results array and applies it as individual arguments to the provided callback function.
 
 ---
 
-### **CancelToken API**
+### **3. `isValpreAPIError`**
 
-#### **Creating a CancelToken**
+The `isValpreAPIError` method helps you identify whether an error was thrown by `ValpreAPI`. This is useful for distinguishing `ValpreAPI`-specific errors from general JavaScript errors or errors from other libraries.
 
-You can create a cancel token using the `CancelToken.source()` method. This creates an object with two properties:
-
-- **`token`**: The actual `CancelToken` instance that will be attached to the request.
-- **`cancel`**: A function that, when called, cancels the request.
-
-```typescript
-const source = ValpreAPI.CancelToken.source();
-```
-
-#### **Attaching the CancelToken to a Request**
-
-Once the token is created, you can attach it to the request configuration using the `cancelToken` property:
-
-```typescript
-const config = {
-    url: '/endpoint',
-    method: 'GET',
-    cancelToken: source.token
-};
-api.request(config);
-```
-
-#### **Canceling the Request**
-
-To cancel the request, simply call the `cancel` function at any point:
-
-```typescript
-source.cancel('Operation canceled by the user.');
-```
-
-Once this function is called, the request will be aborted, and an error will be thrown.
-
----
-
-### **Common Use Cases for `CancelToken`**
-
-1. **Aborting Long-Running Requests**: You can cancel requests that take too long to complete, especially in situations where the user might navigate away from a page before the request finishes.
-
-```typescript
-const source = ValpreAPI.CancelToken.source();
-setTimeout(() => {
-    source.cancel('Request timed out');
-}, 5000); // Cancel request if it takes longer than 5 seconds
-```
-
-2. **Canceling Redundant Requests**: In scenarios where multiple requests might be sent (e.g., typing in a search box), you can cancel previous requests if new ones are made.
-
-```typescript
-let lastRequestToken;
-
-function search(query) {
-    if (lastRequestToken) {
-        lastRequestToken.cancel('New search started');
-    }
-    
-    lastRequestToken = ValpreAPI.CancelToken.source();
-
-    api.request({
-        url: '/search',
-        method: 'GET',
-        params: { q: query },
-        cancelToken: lastRequestToken.token
-    }).then((response) => {
-        console.log('Search results:', response.data);
-    }).catch((error) => {
-        if (ValpreAPI.isValpreAPIError(error) && error.message === 'New search started') {
-            console.log('Previous search was canceled');
-        } else {
-            console.error('Search failed:', error.message);
-        }
-    });
-}
-```
-
-3. **Handling Component Unmounts**: When using `ValpreAPI` in a frontend framework (e.g., React), you can cancel requests when a component is unmounted to prevent memory leaks.
-
-```typescript
-useEffect(() => {
-    const source = ValpreAPI.CancelToken.source();
-
-    api.request({
-        url: '/user/profile',
-        method: 'GET',
-        cancelToken: source.token
-    }).then((response) => {
-        setUserProfile(response.data);
-    }).catch((error) => {
-        if (ValpreAPI.isValpreAPIError(error) && error.message === 'Component unmounted') {
-            console.log('Request canceled due to component unmount');
-        }
-    });
-
-    return () => {
-        source.cancel('Component unmounted');
-    };
-}, []);
-```
-
----
-
-### **Error Handling with `CancelToken`**
-
-When a request is canceled, `ValpreAPI` will throw an error that contains the message you provided when calling `source.cancel()`. The error can be identified by checking if it's a `ValpreAPIError` and by checking the error message.
+#### **How It Works**
+- If an error is thrown during an HTTP request, you can check whether the error is a `ValpreAPIError` by passing the error object to `isValpreAPIError`.
+  
+#### **Example Usage**
 
 ```typescript
 api.request({
-    url: '/data',
-    cancelToken: source.token
+    url: '/some-endpoint',
+    method: 'GET',
+}).then((response) => {
+    console.log('Response:', response.data);
 }).catch((error) => {
     if (ValpreAPI.isValpreAPIError(error)) {
-        if (error.message === 'Request canceled by the user.') {
-            console.log('Request was canceled:', error.message);
-        } else {
-            console.error('Other ValpreAPI Error:', error.message);
-        }
+        // Handle ValpreAPI-specific error
+        console.error('ValpreAPI error:', error.message);
+    } else {
+        // Handle non-ValpreAPI errors
+        console.error('General error:', error.message);
     }
 });
 ```
 
+#### **Parameters**
+- **error**: The error object to check.
+
+#### **Return Value**
+- Returns `true` if the error is a `ValpreAPIError`.
+- Returns `false` if the error is not related to `ValpreAPI`.
+
 ---
 
-### **Complete Example Using `CancelToken`**
+### **Use Cases for Utility Methods**
+
+1. **Managing Multiple Requests**:
+   - Use `ValpreAPI.all()` when you need to execute several HTTP requests concurrently and wait for all of them to finish, such as fetching user data and related posts at the same time.
+
+2. **Simplifying Response Handling**:
+   - Use `ValpreAPI.spread()` to avoid dealing with arrays when working with the results of multiple requests. This method helps you destructure results into individual arguments, improving readability.
+
+3. **Consistent Error Handling**:
+   - Use `isValpreAPIError()` to ensure you can distinguish between errors that come from `ValpreAPI` (such as network errors or response issues) and errors from other parts of your code. This allows you to handle each type of error more effectively.
+
+---
+
+### **Complete Example Using Utility Methods**
 
 ```typescript
 const api = ValpreAPI.create({
     baseURL: 'https://api.example.com',
-    timeout: 5000
 });
 
-// Create a cancel token source
-const source = ValpreAPI.CancelToken.source();
+async function fetchData() {
+    try {
+        // Perform multiple concurrent requests
+        const [usersResponse, postsResponse] = await ValpreAPI.all([
+            api.request({ url: '/users', method: 'GET' }),
+            api.request({ url: '/posts', method: 'GET' })
+        ]);
 
-// Make a request with the cancel token
-api.request({
-    url: '/data',
-    method: 'GET',
-    cancelToken: source.token,
-}).then((response) => {
-    console.log('Data received:', response.data);
-}).catch((error) => {
-    if (ValpreAPI.isValpreAPIError(error) && error.message === 'Request canceled by the user.') {
-        console.log('Request was canceled:', error.message);
-    } else {
-        console.error('Error:', error.message);
+        // Use spread to handle the results
+        ValpreAPI.spread((users, posts) => {
+            console.log('Users:', users.data);
+            console.log('Posts:', posts.data);
+        });
+
+    } catch (error) {
+        // Check if the error is from ValpreAPI
+        if (ValpreAPI.isValpreAPIError(error)) {
+            console.error('ValpreAPI-specific error:', error.message);
+        } else {
+            console.error('Unexpected error:', error.message);
+        }
     }
-});
+}
 
-// Cancel the request after some condition
-setTimeout(() => {
-    source.cancel('Request canceled by the user.');
-}, 2000);
+fetchData();
 ```
 
 ---
 
 ### **Summary**
 
-The `CancelToken` feature in `ValpreAPI` allows you to cancel ongoing HTTP requests efficiently. This can be especially useful in scenarios where requests become unnecessary, take too long, or when the user navigates away from a component or page.
+The utility methods in `ValpreAPI` offer powerful tools for handling multiple requests, spreading results across different functions, and identifying `ValpreAPI`-specific errors. These methods provide convenience and help maintain clean, efficient code in complex scenarios.
 
-By using `CancelToken`, you can improve the performance and user experience of your application, ensuring that no unnecessary requests are made or completed once they are no longer needed.
+- **`all()`**: Execute multiple requests concurrently and resolve once all are completed.
+- **`spread()`**: Spread the results of `all()` into individual function arguments for better readability.
+- **`isValpreAPIError()`**: Identify errors thrown specifically by `ValpreAPI`, helping with precise error handling.
+
+These utility methods make `ValpreAPI` more flexible and developer-friendly, allowing for more efficient API management and better handling of asynchronous operations.
+
+--- 
+
+This documentation provides detailed examples and explanations of how to use each of the utility methods effectively in the `ValpreAPI` library.
