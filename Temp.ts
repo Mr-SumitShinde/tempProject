@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import Header from './Header'; // Adjust the import path if necessary
 
 // Cast fetch to a Jest mock function
@@ -12,11 +12,15 @@ describe('Header component', () => {
     jest.clearAllMocks();
   });
 
-  it('should call fetch when Header is rendered', async () => {
+  it('should call fetch when Log out button is clicked', async () => {
     (fetch as jest.Mock).mockResolvedValue({ ok: true });
     const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
 
-    render(<Header {...mockProps} />);
+    // Render the Header component
+    const { getByText } = render(<Header {...mockProps} />);
+
+    // Simulate a button click
+    fireEvent.click(getByText('Log out'));
 
     expect(fetch).toHaveBeenCalledWith(logoutURL, {
       method: 'GET',
@@ -27,21 +31,29 @@ describe('Header component', () => {
     consoleLogSpy.mockRestore();
   });
 
-  it('should handle fetch failure in Header', async () => {
+  it('should handle fetch failure when Log out button is clicked', async () => {
     (fetch as jest.Mock).mockRejectedValue(new Error('Network Error'));
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
-    render(<Header {...mockProps} />);
+    // Render the Header component
+    const { getByText } = render(<Header {...mockProps} />);
+
+    // Simulate a button click
+    fireEvent.click(getByText('Log out'));
 
     expect(fetch).toHaveBeenCalled();
     expect(consoleErrorSpy).toHaveBeenCalledWith(new Error('Network Error'));
     consoleErrorSpy.mockRestore();
   });
 
-  it('should use default channelId when no urlParams are passed', async () => {
+  it('should use default channelId when Log out button is clicked with no urlParams', async () => {
     (fetch as jest.Mock).mockResolvedValue({ ok: true });
 
-    render(<Header />);
+    // Render the Header component without props
+    const { getByText } = render(<Header />);
+
+    // Simulate a button click
+    fireEvent.click(getByText('Log out'));
 
     expect(fetch).toHaveBeenCalledWith(logoutURL, {
       method: 'GET',
