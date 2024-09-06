@@ -1,211 +1,236 @@
-Here’s a detailed documentation for the retry logic feature in the `ValpreAPI` library.
+Here’s a detailed documentation for the `transformData` feature in the `ValpreAPI` library:
 
 ---
 
-## **Retry Logic in `ValpreAPI`**
+## **`transformData` in `ValpreAPI`**
 
-### **Introduction to Retry Logic**
+### **Introduction to `transformData`**
 
-Retry logic in `ValpreAPI` allows you to automatically retry failed requests based on specific conditions, such as network errors or certain status codes. This is particularly useful in scenarios where network instability or temporary server issues might cause a request to fail, and retrying the request after a short delay can resolve the issue.
+In `ValpreAPI`, the `transformData` function plays a crucial role in converting data between different formats during the HTTP request and response cycle. This function is used to automatically process request payloads before they are sent to the server and to parse responses after they are received.
 
-Retries are handled at the request level, and you can configure the number of retries, the retry conditions, and the delay between retries.
-
----
-
-### **How Retry Logic Works**
-
-- **Retries on Certain Errors**: You can specify which errors should trigger a retry, such as network failures or specific HTTP status codes (e.g., 500 for server errors).
-- **Configurable Retry Attempts**: You can configure how many times a request should be retried before giving up.
-- **Customizable Retry Delay**: You can control how long the library waits before retrying a failed request, either with a fixed delay or an exponential backoff.
-
-Retries are triggered automatically when a request fails based on the conditions you define.
+By using `transformData`, you can ensure that your data is correctly formatted, whether you need to serialize an object into JSON, handle form data, or process response data into a more usable form.
 
 ---
 
-### **Adding Retry Logic**
+### **How `transformData` Works**
 
-#### **1. Setting Up Retry Configuration**
+- **Request Transformation**: Before the request is sent to the server, the request data is transformed into the appropriate format. This typically involves serializing an object into a JSON string or converting form data into the correct format.
+  
+- **Response Transformation**: After the response is received from the server, the raw response data is parsed and transformed into a more usable format. For example, a JSON response string might be parsed into an object.
 
-You can configure retry behavior by specifying the number of retry attempts, a delay between retries, and the conditions that should trigger a retry. This can be done at the request level by passing the options when calling the `request` method.
+---
+
+### **Configuring `transformData`**
+
+`transformData` is typically set via request/response configuration in the `ValpreAPIConfig`. Developers can provide custom transformation logic to control how data is formatted for both requests and responses.
 
 ```typescript
 const api = ValpreAPI.create({
     baseURL: 'https://api.example.com',
     timeout: 5000,
-});
-
-const config = {
-    url: '/data',
-    method: 'GET',
-    retries: 3, // Retry up to 3 times
-    retryDelay: 1000, // 1 second delay between retries
-    retryCondition: (error: any) => {
-        // Retry only for network errors or 5xx server errors
-        return !error.response || error.response.status >= 500;
+    transformRequest: (data, headers) => {
+        // Custom logic to transform request data
+        return JSON.stringify(data);
+    },
+    transformResponse: (data) => {
+        // Custom logic to transform response data
+        return JSON.parse(data);
     }
-};
-
-api.request(config)
-    .then(response => console.log('Data:', response.data))
-    .catch(error => console.error('Request failed after retries:', error));
+});
 ```
 
-- **`retries`**: Specifies the maximum number of retry attempts.
-- **`retryDelay`**: Defines the delay (in milliseconds) between each retry attempt.
-- **`retryCondition`**: A function that determines whether or not the request should be retried based on the error received.
+---
+
+### **Adding Custom `transformData` Logic**
+
+#### **1. Transforming Request Data**
+
+To modify or format request data before it is sent to the server, you can provide a custom `transformRequest` function. This function can modify the request data and headers.
+
+Example:
+
+```typescript
+api.interceptors.request.use((config) => {
+    config.transformRequest = (data, headers) => {
+        // Example: Convert the request data to JSON and add a custom header
+        headers['Content-Type'] = 'application/json';
+        return JSON.stringify(data);
+    };
+    return config;
+});
+```
+
+- **Parameters**:
+  - `data`: The request data to be sent to the server.
+  - `headers`: The request headers, which can be modified if necessary.
+
+- **Return Value**:
+  - This function should return the transformed data, such as a JSON string, a FormData object, or another format.
+
+#### **2. Transforming Response Data**
+
+To modify or parse response data received from the server, you can provide a custom `transformResponse` function.
+
+Example:
+
+```typescript
+api.interceptors.response.use((response) => {
+    response.config.transformResponse = (data) => {
+        // Example: Automatically parse the response as JSON
+        try {
+            return JSON.parse(data);
+        } catch (error) {
+            throw new Error('Failed to parse response as JSON');
+        }
+    };
+    return response;
+});
+```
+
+- **Parameters**:
+  - `data`: The raw response data from the server, typically a string.
+  
+- **Return Value**:
+  - This function should return the transformed data, such as a parsed JSON object or other formatted data.
 
 ---
 
-### **Retry API**
+### **Default Behavior of `transformData`**
 
-#### **Retry Configuration Options**
+By default, if no custom `transformRequest` or `transformResponse` functions are provided, `ValpreAPI` will attempt to transform data using basic JSON serialization and parsing logic.
 
-1. **`retries` (number)**:
-   - Specifies the number of retry attempts for a failed request.
-   - **Default**: `0` (no retries).
-   - Example: `retries: 3` will retry the request up to three times before failing.
+- **Request**: It will serialize the request data to a JSON string if it's an object.
+  
+- **Response**: It will parse the response data into an object if the response has a `Content-Type` of `application/json`.
 
-2. **`retryDelay` (number | function)**:
-   - The delay (in milliseconds) between each retry attempt.
-   - Can be a fixed number or a function that returns a delay (e.g., for exponential backoff).
-   - **Default**: `0` (no delay).
-   - Example: `retryDelay: 1000` will wait 1 second between each retry attempt.
+#### Default Transformation Logic:
 
-3. **`retryCondition` (function)**:
-   - A function that receives the error and determines whether the request should be retried.
-   - Returns `true` if the request should be retried, and `false` otherwise.
-   - **Default**: Retries on network errors (i.e., no response) and HTTP status codes 5xx (server errors).
-   - Example: `retryCondition: (error) => !error.response || error.response.status >= 500` will retry only for network errors and server errors.
+```typescript
+const defaultTransformRequest = (data: any, headers: any) => {
+    if (typeof data === 'object' && data !== null) {
+        headers['Content-Type'] = 'application/json';
+        return JSON.stringify(data);
+    }
+    return data;
+};
+
+const defaultTransformResponse = (data: string) => {
+    try {
+        return JSON.parse(data);
+    } catch {
+        return data;
+    }
+};
+```
 
 ---
 
-### **Retry Example**
+### **Common Use Cases for `transformData`**
 
-Here’s an example of how you can use retry logic to handle network failures and retry the request:
+1. **Form Data**: If your application needs to send form data to the server, `transformRequest` can help convert JavaScript objects into `FormData` objects.
+
+```typescript
+api.interceptors.request.use((config) => {
+    config.transformRequest = (data) => {
+        const formData = new FormData();
+        for (const key in data) {
+            formData.append(key, data[key]);
+        }
+        return formData;
+    };
+    return config;
+});
+```
+
+2. **Handling Non-JSON Responses**: If your server returns non-JSON data, such as plain text or XML, `transformResponse` can help parse and handle the data correctly.
+
+```typescript
+api.interceptors.response.use((response) => {
+    response.config.transformResponse = (data) => {
+        // Example: Handling plain text responses
+        if (typeof data === 'string') {
+            return data;
+        }
+        return JSON.parse(data);
+    };
+    return response;
+});
+```
+
+3. **Error Handling in Response Transformation**: You can use `transformResponse` to handle scenarios where the server returns malformed or unexpected data.
+
+```typescript
+api.interceptors.response.use((response) => {
+    response.config.transformResponse = (data) => {
+        try {
+            return JSON.parse(data);
+        } catch (error) {
+            throw new Error('Response could not be parsed as JSON');
+        }
+    };
+    return response;
+});
+```
+
+---
+
+### **Complete Example of Custom `transformData`**
 
 ```typescript
 const api = ValpreAPI.create({
-    baseURL: 'https://jsonplaceholder.typicode.com',
-    timeout: 5000,
+    baseURL: 'https://api.example.com',
+    timeout: 5000
 });
 
-async function fetchData() {
+// Custom transformation logic for requests and responses
+api.interceptors.request.use((config) => {
+    config.transformRequest = (data, headers) => {
+        // Example: Convert data to FormData for file uploads
+        const formData = new FormData();
+        for (const key in data) {
+            formData.append(key, data[key]);
+        }
+        headers['Content-Type'] = 'multipart/form-data';
+        return formData;
+    };
+    return config;
+});
+
+api.interceptors.response.use((response) => {
+    response.config.transformResponse = (data) => {
+        // Example: Parse response as JSON, but handle errors
+        try {
+            return JSON.parse(data);
+        } catch (error) {
+            console.error('Response could not be parsed as JSON:', error);
+            return data;  // Return raw data if JSON parsing fails
+        }
+    };
+    return response;
+});
+
+// Example API request
+async function uploadFile() {
+    const file = document.querySelector('#fileInput').files[0];
     try {
         const response = await api.request({
-            url: '/posts/1',
-            method: 'GET',
-            retries: 3, // Retry 3 times
-            retryDelay: 2000, // Wait 2 seconds between retries
-            retryCondition: (error) => {
-                // Retry on network errors or 5xx status codes
-                return !error.response || error.response.status >= 500;
-            }
+            url: '/upload',
+            method: 'POST',
+            data: { file }
         });
-        console.log('Response:', response.data);
+        console.log('File uploaded successfully:', response.data);
     } catch (error) {
-        console.error('Failed after retries:', error);
+        console.error('File upload failed:', error);
     }
 }
 
-fetchData();
-```
-
-In this example:
-
-- The request will be retried up to 3 times if it encounters a network error or a server error (status code 500 or higher).
-- The library will wait 2 seconds between each retry attempt.
-
----
-
-### **Custom Retry Delay Logic (Exponential Backoff)**
-
-You can implement an exponential backoff strategy for retry delays, where the delay between retries increases exponentially with each attempt:
-
-```typescript
-const config = {
-    url: '/data',
-    method: 'GET',
-    retries: 5, // Retry up to 5 times
-    retryDelay: (retryCount: number) => {
-        // Exponential backoff: 1000ms * 2^retryCount
-        return 1000 * Math.pow(2, retryCount);
-    },
-    retryCondition: (error) => {
-        return !error.response || error.response.status >= 500;
-    }
-};
-
-api.request(config)
-    .then(response => console.log('Data:', response.data))
-    .catch(error => console.error('Failed after retries:', error));
-```
-
-In this case:
-
-- The retry delay increases with each retry (1 second, 2 seconds, 4 seconds, 8 seconds, etc.).
-- This strategy is useful to avoid overwhelming the server with repeated requests in a short period.
-
----
-
-### **Error Handling with Retries**
-
-You can still catch and handle errors after all retry attempts have failed:
-
-```typescript
-api.request({
-    url: '/data',
-    method: 'GET',
-    retries: 3,
-    retryDelay: 1000,
-    retryCondition: (error) => !error.response || error.response.status >= 500
-})
-    .then(response => {
-        console.log('Response:', response.data);
-    })
-    .catch(error => {
-        console.error('Request failed after retries:', error);
-    });
-```
-
-In this example, if the request fails after 3 retries, the error is caught in the `.catch()` block where you can handle it.
-
----
-
-### **Common Use Cases for Retry Logic**
-
-1. **Network Instability**: Retry logic is particularly useful in situations where network connections may temporarily fail. Automatic retries can ensure that transient errors don’t result in a complete failure.
-   
-2. **Server-Side Issues**: Retrying requests in the event of a server error (status codes 5xx) can be helpful, especially if the issue is temporary and might resolve after a short delay.
-
-3. **Rate Limiting**: In cases where a server implements rate limiting, you might want to retry a request after a delay to give the server time to reset your rate limit.
-
----
-
-### **Handling Exhausted Retries**
-
-Once all retries are exhausted, the error will be propagated back to the application, allowing you to handle it as you would any other error.
-
-```typescript
-api.request({
-    url: '/data',
-    method: 'GET',
-    retries: 3,
-    retryDelay: 1000,
-    retryCondition: (error) => !error.response || error.response.status >= 500
-})
-    .then(response => {
-        console.log('Response:', response.data);
-    })
-    .catch(error => {
-        // Handle the final error after all retry attempts have been exhausted
-        console.error('Request failed after retries:', error);
-    });
+uploadFile();
 ```
 
 ---
 
-### **Conclusion**
+### **Summary**
 
-Retry logic in `ValpreAPI` enhances the resilience of your application by automatically retrying failed requests based on custom conditions. This feature is especially useful for handling network issues, server errors, and temporary failures, improving the reliability of your HTTP requests.
+`transformData` is a powerful feature in `ValpreAPI` that allows you to customize the transformation of request and response data. It simplifies handling various data formats like JSON, FormData, and raw text while offering flexibility for custom scenarios.
 
-By leveraging configurable retries, delays, and retry conditions, you can fine-tune how your application responds to transient failures, making your application more fault-tolerant and responsive to intermittent issues.
+By leveraging `transformRequest` and `transformResponse`, you can ensure that your data is properly serialized before being sent to the server and appropriately parsed after being received, making your API integration more robust and efficient.
