@@ -1,4 +1,4 @@
-Here’s a detailed documentation for the **Utility Methods** in the `ValpreAPI` library:
+Here’s the updated documentation for the utility methods in `ValpreAPI` with the requested sequence:
 
 ---
 
@@ -6,111 +6,108 @@ Here’s a detailed documentation for the **Utility Methods** in the `ValpreAPI`
 
 ### **Introduction to Utility Methods**
 
-`ValpreAPI` provides several built-in utility methods to help developers handle common asynchronous tasks and manage request and response handling more effectively. These methods are similar to those found in popular HTTP libraries and are designed to simplify managing concurrent requests, spreading results across multiple functions, and identifying `ValpreAPI`-specific errors.
+`ValpreAPI` offers several utility methods designed to enhance the flexibility and ease of managing HTTP requests. These methods allow developers to manage request configurations, create new instances, handle multiple concurrent requests, spread results across functions, and identify errors. These features are inspired by other popular libraries but provide a more TypeScript-friendly approach.
 
-The key utility methods available in `ValpreAPI` are:
+Here’s an overview of the utility methods in `ValpreAPI`:
+
+- `create`
+- `setDefault`
+- `isValpreAPIError`
 - `all`
 - `spread`
-- `isValpreAPIError`
 
 ---
 
-### **1. `all`**
+### **1. `create`**
 
-The `all` method is used to execute multiple asynchronous requests concurrently. It works similarly to JavaScript’s native `Promise.all()`. By using `ValpreAPI.all()`, you can send multiple requests at once and wait for all of them to complete.
+The `create` method is used to generate a new instance of the `ValpreAPI` client with custom configuration settings. This is useful when you need multiple instances of `ValpreAPI` with different base configurations (e.g., for different APIs or services).
 
 #### **How It Works**
-- You pass an array of promises (usually API requests) to `all`.
-- The method will resolve when all the promises in the array have completed, returning the results in an array.
-- If any of the requests fail, the entire `all` call will reject with the error of the first failed promise.
+- You pass a configuration object (like `baseURL`, `timeout`, etc.) to `create`, and it returns a new instance of `ValpreAPI` that uses those defaults.
 
 #### **Example Usage**
 
 ```typescript
 const api = ValpreAPI.create({
     baseURL: 'https://api.example.com',
+    timeout: 5000,
 });
 
-// Perform multiple requests concurrently
-ValpreAPI.all([
-    api.request({ url: '/users', method: 'GET' }),
-    api.request({ url: '/posts', method: 'GET' }),
-    api.request({ url: '/comments', method: 'GET' })
-]).then((responses) => {
-    const [usersResponse, postsResponse, commentsResponse] = responses;
-    console.log('Users:', usersResponse.data);
-    console.log('Posts:', postsResponse.data);
-    console.log('Comments:', commentsResponse.data);
-}).catch((error) => {
-    console.error('One of the requests failed:', error);
+// Use this instance to make requests
+api.request({
+    url: '/users',
+    method: 'GET'
+}).then((response) => {
+    console.log('User data:', response.data);
 });
 ```
 
 #### **Parameters**
-- **promises**: An array of promises, typically API requests.
+- **defaultConfig**: An object containing configuration options (e.g., `baseURL`, `headers`, `timeout`).
 
 #### **Return Value**
-- Resolves with an array containing the results of all successful requests.
-- Rejects if any of the requests fail, returning the first error encountered.
+- A new instance of `ValpreAPI` with the provided configuration.
 
 ---
 
-### **2. `spread`**
+### **2. `setDefault`**
 
-The `spread` method allows you to pass the results of `ValpreAPI.all()` as individual arguments to a function. This is useful when working with multiple concurrent requests, as it lets you spread the results into separate variables instead of working with an array.
+The `setDefault` method allows you to modify or extend the default configuration for the current `ValpreAPI` instance. This is helpful when you need to change default settings, such as headers or base URLs, after the instance has been created.
 
 #### **How It Works**
-- After using `ValpreAPI.all()`, you can apply `ValpreAPI.spread()` to spread the results into individual arguments for the callback function.
-  
+- You pass a configuration object to `setDefault`, and it merges with the existing default configuration, modifying it as needed.
+
 #### **Example Usage**
 
 ```typescript
 const api = ValpreAPI.create({
     baseURL: 'https://api.example.com',
+    timeout: 5000
 });
 
-// Perform concurrent requests and spread the results
-ValpreAPI.all([
-    api.request({ url: '/users', method: 'GET' }),
-    api.request({ url: '/posts', method: 'GET' })
-]).then(ValpreAPI.spread((usersResponse, postsResponse) => {
-    console.log('Users:', usersResponse.data);
-    console.log('Posts:', postsResponse.data);
-})).catch((error) => {
-    console.error('Request failed:', error);
+// Modify the default configuration
+api.setDefault({
+    timeout: 10000,  // Increase the timeout
+    headers: {
+        'Authorization': 'Bearer new-token'
+    }
+});
+
+// Use the updated instance to make requests
+api.request({
+    url: '/users',
+    method: 'GET'
+}).then((response) => {
+    console.log('User data:', response.data);
 });
 ```
 
 #### **Parameters**
-- **callback**: A function that accepts the spread results from multiple promises.
+- **defaultConfig**: An object containing configuration options (e.g., `headers`, `timeout`).
 
 #### **Return Value**
-- A function that takes the results array and applies it as individual arguments to the provided callback function.
+- The current instance of `ValpreAPI` with the updated default configuration.
 
 ---
 
 ### **3. `isValpreAPIError`**
 
-The `isValpreAPIError` method helps you identify whether an error was thrown by `ValpreAPI`. This is useful for distinguishing `ValpreAPI`-specific errors from general JavaScript errors or errors from other libraries.
+The `isValpreAPIError` method allows you to identify whether an error was generated by `ValpreAPI`. This is useful when handling errors, as it helps distinguish between errors from `ValpreAPI` and those from other parts of your application.
 
 #### **How It Works**
-- If an error is thrown during an HTTP request, you can check whether the error is a `ValpreAPIError` by passing the error object to `isValpreAPIError`.
-  
+- You pass an error object to `isValpreAPIError`, and it returns `true` if the error is a `ValpreAPI` error, or `false` if it is not.
+
 #### **Example Usage**
 
 ```typescript
 api.request({
     url: '/some-endpoint',
-    method: 'GET',
-}).then((response) => {
-    console.log('Response:', response.data);
+    method: 'GET'
 }).catch((error) => {
     if (ValpreAPI.isValpreAPIError(error)) {
-        // Handle ValpreAPI-specific error
-        console.error('ValpreAPI error:', error.message);
+        console.error('ValpreAPI-specific error:', error.message);
     } else {
-        // Handle non-ValpreAPI errors
-        console.error('General error:', error.message);
+        console.error('Non-ValpreAPI error:', error.message);
     }
 });
 ```
@@ -119,21 +116,68 @@ api.request({
 - **error**: The error object to check.
 
 #### **Return Value**
-- Returns `true` if the error is a `ValpreAPIError`.
-- Returns `false` if the error is not related to `ValpreAPI`.
+- `true` if the error is a `ValpreAPIError`.
+- `false` if the error is not from `ValpreAPI`.
 
 ---
 
-### **Use Cases for Utility Methods**
+### **4. `all`**
 
-1. **Managing Multiple Requests**:
-   - Use `ValpreAPI.all()` when you need to execute several HTTP requests concurrently and wait for all of them to finish, such as fetching user data and related posts at the same time.
+The `all` method is used to execute multiple asynchronous requests concurrently. It functions similarly to JavaScript’s native `Promise.all()`, but it’s specifically designed for working with `ValpreAPI` requests.
 
-2. **Simplifying Response Handling**:
-   - Use `ValpreAPI.spread()` to avoid dealing with arrays when working with the results of multiple requests. This method helps you destructure results into individual arguments, improving readability.
+#### **How It Works**
+- You pass an array of promises (usually API requests) to `all`, and it resolves when all the requests are complete, returning the results in an array.
 
-3. **Consistent Error Handling**:
-   - Use `isValpreAPIError()` to ensure you can distinguish between errors that come from `ValpreAPI` (such as network errors or response issues) and errors from other parts of your code. This allows you to handle each type of error more effectively.
+#### **Example Usage**
+
+```typescript
+ValpreAPI.all([
+    api.request({ url: '/users', method: 'GET' }),
+    api.request({ url: '/posts', method: 'GET' })
+]).then((responses) => {
+    const [usersResponse, postsResponse] = responses;
+    console.log('Users:', usersResponse.data);
+    console.log('Posts:', postsResponse.data);
+}).catch((error) => {
+    console.error('One of the requests failed:', error);
+});
+```
+
+#### **Parameters**
+- **promises**: An array of promises (usually API requests).
+
+#### **Return Value**
+- Resolves with an array of responses if all requests succeed.
+- Rejects with an error if any request fails.
+
+---
+
+### **5. `spread`**
+
+The `spread` method allows you to spread the results of `ValpreAPI.all()` into individual function arguments. This is useful when working with multiple concurrent requests and avoids the need to destructure arrays manually.
+
+#### **How It Works**
+- After using `ValpreAPI.all()`, apply `ValpreAPI.spread()` to spread the results into individual arguments for the callback function.
+
+#### **Example Usage**
+
+```typescript
+ValpreAPI.all([
+    api.request({ url: '/users', method: 'GET' }),
+    api.request({ url: '/posts', method: 'GET' })
+]).then(ValpreAPI.spread((usersResponse, postsResponse) => {
+    console.log('Users:', usersResponse.data);
+    console.log('Posts:', postsResponse.data);
+})).catch((error) => {
+    console.error('One of the requests failed:', error);
+});
+```
+
+#### **Parameters**
+- **callback**: A function that receives the spread results from multiple promises.
+
+#### **Return Value**
+- A function that takes an array of results and applies them as individual arguments to the provided callback.
 
 ---
 
@@ -142,47 +186,46 @@ api.request({
 ```typescript
 const api = ValpreAPI.create({
     baseURL: 'https://api.example.com',
+    timeout: 5000
 });
 
-async function fetchData() {
-    try {
-        // Perform multiple concurrent requests
-        const [usersResponse, postsResponse] = await ValpreAPI.all([
-            api.request({ url: '/users', method: 'GET' }),
-            api.request({ url: '/posts', method: 'GET' })
-        ]);
-
-        // Use spread to handle the results
-        ValpreAPI.spread((users, posts) => {
-            console.log('Users:', users.data);
-            console.log('Posts:', posts.data);
-        });
-
-    } catch (error) {
-        // Check if the error is from ValpreAPI
-        if (ValpreAPI.isValpreAPIError(error)) {
-            console.error('ValpreAPI-specific error:', error.message);
-        } else {
-            console.error('Unexpected error:', error.message);
-        }
+// Update default configuration
+api.setDefault({
+    headers: {
+        'Authorization': 'Bearer token'
     }
-}
+});
 
-fetchData();
+// Perform concurrent requests
+ValpreAPI.all([
+    api.request({ url: '/users', method: 'GET' }),
+    api.request({ url: '/posts', method: 'GET' })
+]).then(ValpreAPI.spread((usersResponse, postsResponse) => {
+    console.log('Users:', usersResponse.data);
+    console.log('Posts:', postsResponse.data);
+})).catch((error) => {
+    if (ValpreAPI.isValpreAPIError(error)) {
+        console.error('ValpreAPI error:', error.message);
+    } else {
+        console.error('General error:', error.message);
+    }
+});
 ```
 
 ---
 
 ### **Summary**
 
-The utility methods in `ValpreAPI` offer powerful tools for handling multiple requests, spreading results across different functions, and identifying `ValpreAPI`-specific errors. These methods provide convenience and help maintain clean, efficient code in complex scenarios.
+`ValpreAPI` offers powerful utility methods that make managing multiple API requests, error handling, and default configurations easier and more streamlined:
 
-- **`all()`**: Execute multiple requests concurrently and resolve once all are completed.
-- **`spread()`**: Spread the results of `all()` into individual function arguments for better readability.
-- **`isValpreAPIError()`**: Identify errors thrown specifically by `ValpreAPI`, helping with precise error handling.
+- **`create`**: Create a new `ValpreAPI` instance with custom configurations.
+- **`setDefault`**: Modify or extend the default configuration of an existing `ValpreAPI` instance.
+- **`isValpreAPIError`**: Identify whether an error originated from `ValpreAPI`.
+- **`all`**: Execute multiple requests concurrently and wait for all of them to complete.
+- **`spread`**: Spread the results of concurrent requests across function arguments for easier handling.
 
-These utility methods make `ValpreAPI` more flexible and developer-friendly, allowing for more efficient API management and better handling of asynchronous operations.
+These utility methods enhance the flexibility and ease of working with API requests, making `ValpreAPI` a robust solution for managing complex HTTP request workflows.
 
 --- 
 
-This documentation provides detailed examples and explanations of how to use each of the utility methods effectively in the `ValpreAPI` library.
+This documentation provides a clear and comprehensive overview of the utility methods in the `ValpreAPI` library, including examples of how to use each method effectively.
