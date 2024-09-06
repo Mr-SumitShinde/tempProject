@@ -1,5 +1,3 @@
-import { logout } from './path-to-your-logout-function';
-
 // Mock global fetch and URL
 global.fetch = jest.fn();
 const logoutURL = 'http://example.com/logout';
@@ -15,6 +13,7 @@ describe('logout function', () => {
     fetch.mockResolvedValue({ ok: true });
     const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
 
+    // Call logout directly without importing
     logout(mockProps);
 
     expect(fetch).toHaveBeenCalledWith(logoutURL, {
