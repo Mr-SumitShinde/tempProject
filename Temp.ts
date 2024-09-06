@@ -1,180 +1,216 @@
-Here’s a detailed documentation for the `transformData` feature in the `ValpreAPI` library:
+Here’s a detailed documentation for the `CancelToken` feature in the `ValpreAPI` library:
 
 ---
 
-## **`transformData` in `ValpreAPI`**
+## **`CancelToken` in `ValpreAPI`**
 
-### **Introduction to `transformData`**
+### **Introduction to `CancelToken`**
 
-In `ValpreAPI`, the `transformData` function plays a crucial role in converting data between different formats during the HTTP request and response cycle. This function is used to automatically process request payloads before they are sent to the server and to parse responses after they are received.
+`CancelToken` in `ValpreAPI` allows you to cancel requests that have not yet completed. This is useful in scenarios where you want to abort an HTTP request due to user interactions or changing conditions, such as when a user navigates away from a page or when an API call becomes unnecessary.
 
-By using `transformData`, you can ensure that your data is correctly formatted, whether you need to serialize an object into JSON, handle form data, or process response data into a more usable form.
+By using `CancelToken`, you can ensure that resources are not wasted on requests that are no longer needed, improving the performance and responsiveness of your application.
 
 ---
 
-### **How `transformData` Works**
+### **How `CancelToken` Works**
 
-- **Request Transformation**: Before the request is sent to the server, the request data is transformed into the appropriate format. This typically involves serializing an object into a JSON string or converting form data into the correct format.
+- **Creating a Token**: You can create a `CancelToken` instance using `ValpreAPI.CancelToken.source()`. This generates a token and a `cancel` function that can be called to abort the request.
   
-- **Response Transformation**: After the response is received from the server, the raw response data is parsed and transformed into a more usable format. For example, a JSON response string might be parsed into an object.
+- **Attaching a Token to a Request**: The generated token is attached to the request using the `cancelToken` property in the request configuration.
+
+- **Canceling a Request**: You can call the `cancel` function at any time to cancel the request. Once a request is canceled, it will not be completed, and an error will be thrown, which you can handle accordingly.
 
 ---
 
-### **Configuring `transformData`**
+### **Using `CancelToken` to Cancel Requests**
 
-`transformData` is typically set via request/response configuration in the `ValpreAPIConfig`. Developers can provide custom transformation logic to control how data is formatted for both requests and responses.
+#### **1. Creating and Using a `CancelToken`**
+
+To cancel a request, you need to create a `CancelToken` and attach it to the request configuration.
 
 ```typescript
 const api = ValpreAPI.create({
     baseURL: 'https://api.example.com',
     timeout: 5000,
-    transformRequest: (data, headers) => {
-        // Custom logic to transform request data
-        return JSON.stringify(data);
-    },
-    transformResponse: (data) => {
-        // Custom logic to transform response data
-        return JSON.parse(data);
+});
+
+// Create a cancel token source
+const source = ValpreAPI.CancelToken.source();
+
+// Make a request with the cancel token
+api.request({
+    url: '/endpoint',
+    method: 'GET',
+    cancelToken: source.token,
+}).then((response) => {
+    console.log('Response received:', response.data);
+}).catch((error) => {
+    if (ValpreAPI.isValpreAPIError(error) && error.message === 'Request canceled') {
+        console.log('Request was canceled:', error.message);
+    } else {
+        console.error('Request failed:', error.message);
     }
 });
+
+// Cancel the request
+source.cancel('Request canceled by the user.');
+```
+
+- **`CancelToken.source()`**: Creates a new `CancelToken` along with a `cancel` function.
+- **`cancelToken`**: The token that is attached to the request configuration.
+- **`source.cancel(message)`**: The function used to cancel the request. You can provide a custom message to indicate why the request was canceled.
+
+#### **2. Handling Canceled Requests**
+
+When a request is canceled, a special error is thrown, which you can handle using `try-catch` or `.catch()` in a promise chain. The error message will include the reason for cancellation.
+
+Example of error handling:
+
+```typescript
+try {
+    const response = await api.request({
+        url: '/endpoint',
+        method: 'GET',
+        cancelToken: source.token
+    });
+    console.log('Response:', response.data);
+} catch (error) {
+    if (ValpreAPI.isValpreAPIError(error) && error.message === 'Request canceled by the user.') {
+        console.log('Request was canceled:', error.message);
+    } else {
+        console.error('Error occurred:', error.message);
+    }
+}
 ```
 
 ---
 
-### **Adding Custom `transformData` Logic**
+### **CancelToken API**
 
-#### **1. Transforming Request Data**
+#### **Creating a CancelToken**
 
-To modify or format request data before it is sent to the server, you can provide a custom `transformRequest` function. This function can modify the request data and headers.
+You can create a cancel token using the `CancelToken.source()` method. This creates an object with two properties:
 
-Example:
+- **`token`**: The actual `CancelToken` instance that will be attached to the request.
+- **`cancel`**: A function that, when called, cancels the request.
 
 ```typescript
-api.interceptors.request.use((config) => {
-    config.transformRequest = (data, headers) => {
-        // Example: Convert the request data to JSON and add a custom header
-        headers['Content-Type'] = 'application/json';
-        return JSON.stringify(data);
-    };
-    return config;
-});
+const source = ValpreAPI.CancelToken.source();
 ```
 
-- **Parameters**:
-  - `data`: The request data to be sent to the server.
-  - `headers`: The request headers, which can be modified if necessary.
+#### **Attaching the CancelToken to a Request**
 
-- **Return Value**:
-  - This function should return the transformed data, such as a JSON string, a FormData object, or another format.
-
-#### **2. Transforming Response Data**
-
-To modify or parse response data received from the server, you can provide a custom `transformResponse` function.
-
-Example:
+Once the token is created, you can attach it to the request configuration using the `cancelToken` property:
 
 ```typescript
-api.interceptors.response.use((response) => {
-    response.config.transformResponse = (data) => {
-        // Example: Automatically parse the response as JSON
-        try {
-            return JSON.parse(data);
-        } catch (error) {
-            throw new Error('Failed to parse response as JSON');
-        }
-    };
-    return response;
-});
-```
-
-- **Parameters**:
-  - `data`: The raw response data from the server, typically a string.
-  
-- **Return Value**:
-  - This function should return the transformed data, such as a parsed JSON object or other formatted data.
-
----
-
-### **Default Behavior of `transformData`**
-
-By default, if no custom `transformRequest` or `transformResponse` functions are provided, `ValpreAPI` will attempt to transform data using basic JSON serialization and parsing logic.
-
-- **Request**: It will serialize the request data to a JSON string if it's an object.
-  
-- **Response**: It will parse the response data into an object if the response has a `Content-Type` of `application/json`.
-
-#### Default Transformation Logic:
-
-```typescript
-const defaultTransformRequest = (data: any, headers: any) => {
-    if (typeof data === 'object' && data !== null) {
-        headers['Content-Type'] = 'application/json';
-        return JSON.stringify(data);
-    }
-    return data;
+const config = {
+    url: '/endpoint',
+    method: 'GET',
+    cancelToken: source.token
 };
+api.request(config);
+```
 
-const defaultTransformResponse = (data: string) => {
-    try {
-        return JSON.parse(data);
-    } catch {
-        return data;
+#### **Canceling the Request**
+
+To cancel the request, simply call the `cancel` function at any point:
+
+```typescript
+source.cancel('Operation canceled by the user.');
+```
+
+Once this function is called, the request will be aborted, and an error will be thrown.
+
+---
+
+### **Common Use Cases for `CancelToken`**
+
+1. **Aborting Long-Running Requests**: You can cancel requests that take too long to complete, especially in situations where the user might navigate away from a page before the request finishes.
+
+```typescript
+const source = ValpreAPI.CancelToken.source();
+setTimeout(() => {
+    source.cancel('Request timed out');
+}, 5000); // Cancel request if it takes longer than 5 seconds
+```
+
+2. **Canceling Redundant Requests**: In scenarios where multiple requests might be sent (e.g., typing in a search box), you can cancel previous requests if new ones are made.
+
+```typescript
+let lastRequestToken;
+
+function search(query) {
+    if (lastRequestToken) {
+        lastRequestToken.cancel('New search started');
     }
-};
+    
+    lastRequestToken = ValpreAPI.CancelToken.source();
+
+    api.request({
+        url: '/search',
+        method: 'GET',
+        params: { q: query },
+        cancelToken: lastRequestToken.token
+    }).then((response) => {
+        console.log('Search results:', response.data);
+    }).catch((error) => {
+        if (ValpreAPI.isValpreAPIError(error) && error.message === 'New search started') {
+            console.log('Previous search was canceled');
+        } else {
+            console.error('Search failed:', error.message);
+        }
+    });
+}
+```
+
+3. **Handling Component Unmounts**: When using `ValpreAPI` in a frontend framework (e.g., React), you can cancel requests when a component is unmounted to prevent memory leaks.
+
+```typescript
+useEffect(() => {
+    const source = ValpreAPI.CancelToken.source();
+
+    api.request({
+        url: '/user/profile',
+        method: 'GET',
+        cancelToken: source.token
+    }).then((response) => {
+        setUserProfile(response.data);
+    }).catch((error) => {
+        if (ValpreAPI.isValpreAPIError(error) && error.message === 'Component unmounted') {
+            console.log('Request canceled due to component unmount');
+        }
+    });
+
+    return () => {
+        source.cancel('Component unmounted');
+    };
+}, []);
 ```
 
 ---
 
-### **Common Use Cases for `transformData`**
+### **Error Handling with `CancelToken`**
 
-1. **Form Data**: If your application needs to send form data to the server, `transformRequest` can help convert JavaScript objects into `FormData` objects.
-
-```typescript
-api.interceptors.request.use((config) => {
-    config.transformRequest = (data) => {
-        const formData = new FormData();
-        for (const key in data) {
-            formData.append(key, data[key]);
-        }
-        return formData;
-    };
-    return config;
-});
-```
-
-2. **Handling Non-JSON Responses**: If your server returns non-JSON data, such as plain text or XML, `transformResponse` can help parse and handle the data correctly.
+When a request is canceled, `ValpreAPI` will throw an error that contains the message you provided when calling `source.cancel()`. The error can be identified by checking if it's a `ValpreAPIError` and by checking the error message.
 
 ```typescript
-api.interceptors.response.use((response) => {
-    response.config.transformResponse = (data) => {
-        // Example: Handling plain text responses
-        if (typeof data === 'string') {
-            return data;
+api.request({
+    url: '/data',
+    cancelToken: source.token
+}).catch((error) => {
+    if (ValpreAPI.isValpreAPIError(error)) {
+        if (error.message === 'Request canceled by the user.') {
+            console.log('Request was canceled:', error.message);
+        } else {
+            console.error('Other ValpreAPI Error:', error.message);
         }
-        return JSON.parse(data);
-    };
-    return response;
-});
-```
-
-3. **Error Handling in Response Transformation**: You can use `transformResponse` to handle scenarios where the server returns malformed or unexpected data.
-
-```typescript
-api.interceptors.response.use((response) => {
-    response.config.transformResponse = (data) => {
-        try {
-            return JSON.parse(data);
-        } catch (error) {
-            throw new Error('Response could not be parsed as JSON');
-        }
-    };
-    return response;
+    }
 });
 ```
 
 ---
 
-### **Complete Example of Custom `transformData`**
+### **Complete Example Using `CancelToken`**
 
 ```typescript
 const api = ValpreAPI.create({
@@ -182,55 +218,34 @@ const api = ValpreAPI.create({
     timeout: 5000
 });
 
-// Custom transformation logic for requests and responses
-api.interceptors.request.use((config) => {
-    config.transformRequest = (data, headers) => {
-        // Example: Convert data to FormData for file uploads
-        const formData = new FormData();
-        for (const key in data) {
-            formData.append(key, data[key]);
-        }
-        headers['Content-Type'] = 'multipart/form-data';
-        return formData;
-    };
-    return config;
-});
+// Create a cancel token source
+const source = ValpreAPI.CancelToken.source();
 
-api.interceptors.response.use((response) => {
-    response.config.transformResponse = (data) => {
-        // Example: Parse response as JSON, but handle errors
-        try {
-            return JSON.parse(data);
-        } catch (error) {
-            console.error('Response could not be parsed as JSON:', error);
-            return data;  // Return raw data if JSON parsing fails
-        }
-    };
-    return response;
-});
-
-// Example API request
-async function uploadFile() {
-    const file = document.querySelector('#fileInput').files[0];
-    try {
-        const response = await api.request({
-            url: '/upload',
-            method: 'POST',
-            data: { file }
-        });
-        console.log('File uploaded successfully:', response.data);
-    } catch (error) {
-        console.error('File upload failed:', error);
+// Make a request with the cancel token
+api.request({
+    url: '/data',
+    method: 'GET',
+    cancelToken: source.token,
+}).then((response) => {
+    console.log('Data received:', response.data);
+}).catch((error) => {
+    if (ValpreAPI.isValpreAPIError(error) && error.message === 'Request canceled by the user.') {
+        console.log('Request was canceled:', error.message);
+    } else {
+        console.error('Error:', error.message);
     }
-}
+});
 
-uploadFile();
+// Cancel the request after some condition
+setTimeout(() => {
+    source.cancel('Request canceled by the user.');
+}, 2000);
 ```
 
 ---
 
 ### **Summary**
 
-`transformData` is a powerful feature in `ValpreAPI` that allows you to customize the transformation of request and response data. It simplifies handling various data formats like JSON, FormData, and raw text while offering flexibility for custom scenarios.
+The `CancelToken` feature in `ValpreAPI` allows you to cancel ongoing HTTP requests efficiently. This can be especially useful in scenarios where requests become unnecessary, take too long, or when the user navigates away from a component or page.
 
-By leveraging `transformRequest` and `transformResponse`, you can ensure that your data is properly serialized before being sent to the server and appropriately parsed after being received, making your API integration more robust and efficient.
+By using `CancelToken`, you can improve the performance and user experience of your application, ensuring that no unnecessary requests are made or completed once they are no longer needed.
