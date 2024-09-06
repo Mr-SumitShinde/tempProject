@@ -1,30 +1,32 @@
-Here’s a detailed documentation for the interceptor feature in the `ValpreAPI` library.
+Here’s a detailed documentation for the retry logic feature in the `ValpreAPI` library.
 
 ---
 
-## **Interceptors in `ValpreAPI`**
+## **Retry Logic in `ValpreAPI`**
 
-### **Introduction to Interceptors**
+### **Introduction to Retry Logic**
 
-Interceptors in `ValpreAPI` are functions that allow you to run custom logic before a request is sent or after a response is received. They provide a powerful mechanism to modify requests and responses globally, enabling actions such as adding headers (e.g., authentication tokens), transforming data, logging, or handling errors centrally.
+Retry logic in `ValpreAPI` allows you to automatically retry failed requests based on specific conditions, such as network errors or certain status codes. This is particularly useful in scenarios where network instability or temporary server issues might cause a request to fail, and retrying the request after a short delay can resolve the issue.
 
-Interceptors in `ValpreAPI` are based on a similar concept to those in popular HTTP libraries like Axios, allowing you to handle or modify requests and responses easily.
-
-### **How Interceptors Work**
-
-- **Request Interceptors**: These interceptors are executed before the HTTP request is sent. They allow you to modify the request configuration, such as adding headers or changing request parameters.
-  
-- **Response Interceptors**: These interceptors are executed after the HTTP response is received but before it is passed to the calling code. They allow you to modify or log the response, handle errors, or retry failed requests.
-
-Both request and response interceptors can be added using the `interceptors` property available on the `ValpreAPI` instance.
+Retries are handled at the request level, and you can configure the number of retries, the retry conditions, and the delay between retries.
 
 ---
 
-### **Adding Request and Response Interceptors**
+### **How Retry Logic Works**
 
-#### **1. Request Interceptor**
+- **Retries on Certain Errors**: You can specify which errors should trigger a retry, such as network failures or specific HTTP status codes (e.g., 500 for server errors).
+- **Configurable Retry Attempts**: You can configure how many times a request should be retried before giving up.
+- **Customizable Retry Delay**: You can control how long the library waits before retrying a failed request, either with a fixed delay or an exponential backoff.
 
-You can add a request interceptor to modify or log request configurations before they are sent. For example, adding an authentication token to every request header:
+Retries are triggered automatically when a request fails based on the conditions you define.
+
+---
+
+### **Adding Retry Logic**
+
+#### **1. Setting Up Retry Configuration**
+
+You can configure retry behavior by specifying the number of retry attempts, a delay between retries, and the conditions that should trigger a retry. This can be done at the request level by passing the options when calling the `request` method.
 
 ```typescript
 const api = ValpreAPI.create({
@@ -32,164 +34,178 @@ const api = ValpreAPI.create({
     timeout: 5000,
 });
 
-api.interceptors.request.use((config) => {
-    config.headers['Authorization'] = `Bearer your-auth-token`;
-    console.log('Request Config:', config);
-    return config;
-}, (error) => {
-    // Handle errors in request configuration
-    return Promise.reject(error);
-});
-```
-
-- **Config Modification**: The interceptor function receives the request `config` object and returns the modified `config` or throws an error.
-- **Error Handling**: The second parameter of `use()` allows you to handle any errors that occur when setting up the request.
-
-#### **2. Response Interceptor**
-
-Response interceptors let you modify or inspect the response after it is received from the server, but before it is handed to the application.
-
-```typescript
-api.interceptors.response.use((response) => {
-    // Modify the response data
-    console.log('Response Data:', response.data);
-    return response;
-}, (error) => {
-    // Handle the error and potentially retry the request or show a message
-    if (error.response && error.response.status === 401) {
-        console.log('Unauthorized! Redirecting to login...');
+const config = {
+    url: '/data',
+    method: 'GET',
+    retries: 3, // Retry up to 3 times
+    retryDelay: 1000, // 1 second delay between retries
+    retryCondition: (error: any) => {
+        // Retry only for network errors or 5xx server errors
+        return !error.response || error.response.status >= 500;
     }
-    return Promise.reject(error);
-});
+};
+
+api.request(config)
+    .then(response => console.log('Data:', response.data))
+    .catch(error => console.error('Request failed after retries:', error));
 ```
 
-- **Response Transformation**: Modify the response object, extract specific data, or log responses for monitoring.
-- **Error Handling**: The second parameter of `use()` allows you to handle errors in the response, such as checking for specific HTTP status codes.
+- **`retries`**: Specifies the maximum number of retry attempts.
+- **`retryDelay`**: Defines the delay (in milliseconds) between each retry attempt.
+- **`retryCondition`**: A function that determines whether or not the request should be retried based on the error received.
 
 ---
 
-### **Interceptors API**
+### **Retry API**
 
-#### **Adding an Interceptor**
+#### **Retry Configuration Options**
 
-Interceptors are added using the `use` method:
+1. **`retries` (number)**:
+   - Specifies the number of retry attempts for a failed request.
+   - **Default**: `0` (no retries).
+   - Example: `retries: 3` will retry the request up to three times before failing.
 
-```typescript
-api.interceptors.request.use(onFulfilled, onRejected);
-api.interceptors.response.use(onFulfilled, onRejected);
-```
+2. **`retryDelay` (number | function)**:
+   - The delay (in milliseconds) between each retry attempt.
+   - Can be a fixed number or a function that returns a delay (e.g., for exponential backoff).
+   - **Default**: `0` (no delay).
+   - Example: `retryDelay: 1000` will wait 1 second between each retry attempt.
 
-- **onFulfilled**: A function that takes the `config` (for requests) or `response` (for responses) and returns the modified config or response. It can also return a promise.
-- **onRejected**: A function that handles errors during the request or response phase. It receives the error object and can return a promise or throw an error.
-
-#### **Ejecting an Interceptor**
-
-If you no longer need an interceptor, you can remove it using the `eject` method. The `use` method returns an ID that can be passed to `eject`:
-
-```typescript
-const requestInterceptorId = api.interceptors.request.use(onFulfilled, onRejected);
-
-// Later, to remove the interceptor:
-api.interceptors.request.eject(requestInterceptorId);
-```
-
-- **`eject(id)`**: Removes an interceptor by its ID. This can be used if you need to remove specific logic or modify how interceptors work during runtime.
-
-#### **Running Interceptors**
-
-Interceptors are executed in the order they are added. The `ValpreAPI` library ensures that the request interceptors are executed before the request is made, and response interceptors are executed after the response is received.
+3. **`retryCondition` (function)**:
+   - A function that receives the error and determines whether the request should be retried.
+   - Returns `true` if the request should be retried, and `false` otherwise.
+   - **Default**: Retries on network errors (i.e., no response) and HTTP status codes 5xx (server errors).
+   - Example: `retryCondition: (error) => !error.response || error.response.status >= 500` will retry only for network errors and server errors.
 
 ---
 
-### **Detailed Example**
+### **Retry Example**
 
-Here’s a complete example that demonstrates both request and response interceptors:
+Here’s an example of how you can use retry logic to handle network failures and retry the request:
 
 ```typescript
 const api = ValpreAPI.create({
-    baseURL: 'https://api.example.com',
+    baseURL: 'https://jsonplaceholder.typicode.com',
     timeout: 5000,
 });
 
-// Adding request interceptor
-api.interceptors.request.use((config) => {
-    // Add a token to all outgoing requests
-    config.headers['Authorization'] = `Bearer my-auth-token`;
-    config.headers['Custom-Header'] = 'CustomValue';
-    return config;
-}, (error) => {
-    // Handle request setup error
-    console.error('Request error:', error);
-    return Promise.reject(error);
-});
-
-// Adding response interceptor
-api.interceptors.response.use((response) => {
-    // Log response
-    console.log('Response data:', response.data);
-    return response;
-}, (error) => {
-    // Handle response errors
-    if (error.response && error.response.status === 401) {
-        console.error('Unauthorized! Redirecting...');
-        // Add redirection logic or token refresh here
-    } else if (error.response && error.response.status === 500) {
-        console.error('Server Error!');
-    }
-    return Promise.reject(error);
-});
-
-// Making a request
 async function fetchData() {
     try {
         const response = await api.request({
-            url: '/user/profile',
-            method: 'GET'
+            url: '/posts/1',
+            method: 'GET',
+            retries: 3, // Retry 3 times
+            retryDelay: 2000, // Wait 2 seconds between retries
+            retryCondition: (error) => {
+                // Retry on network errors or 5xx status codes
+                return !error.response || error.response.status >= 500;
+            }
         });
-        console.log('Profile data:', response.data);
+        console.log('Response:', response.data);
     } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Failed after retries:', error);
     }
 }
 
 fetchData();
 ```
 
----
+In this example:
 
-### **Common Use Cases for Interceptors**
-
-1. **Authentication**: Automatically attach authentication tokens to request headers.
-2. **Logging**: Log request and response details for debugging or monitoring.
-3. **Error Handling**: Centralize error handling logic (e.g., redirect to login on 401 errors).
-4. **Response Transformation**: Automatically transform or filter response data.
-5. **Request Cancellation**: Handle request cancellation scenarios before a request is sent.
+- The request will be retried up to 3 times if it encounters a network error or a server error (status code 500 or higher).
+- The library will wait 2 seconds between each retry attempt.
 
 ---
 
-### **Error Handling in Interceptors**
+### **Custom Retry Delay Logic (Exponential Backoff)**
 
-Interceptors can throw errors, and those errors will propagate through the promise chain, allowing you to handle them in a centralized place.
-
-- **Request Errors**: Errors in request interceptors typically relate to issues in the request configuration (e.g., missing headers, invalid parameters).
-- **Response Errors**: Response errors occur when the server returns an error response, such as a 404 or 500 error.
+You can implement an exponential backoff strategy for retry delays, where the delay between retries increases exponentially with each attempt:
 
 ```typescript
-api.interceptors.response.use(
-    response => response,
-    error => {
-        if (ValpreAPI.isValpreAPIError(error)) {
-            console.error('Error details:', error.config, error.message);
-        }
-        return Promise.reject(error);
+const config = {
+    url: '/data',
+    method: 'GET',
+    retries: 5, // Retry up to 5 times
+    retryDelay: (retryCount: number) => {
+        // Exponential backoff: 1000ms * 2^retryCount
+        return 1000 * Math.pow(2, retryCount);
+    },
+    retryCondition: (error) => {
+        return !error.response || error.response.status >= 500;
     }
-);
+};
+
+api.request(config)
+    .then(response => console.log('Data:', response.data))
+    .catch(error => console.error('Failed after retries:', error));
+```
+
+In this case:
+
+- The retry delay increases with each retry (1 second, 2 seconds, 4 seconds, 8 seconds, etc.).
+- This strategy is useful to avoid overwhelming the server with repeated requests in a short period.
+
+---
+
+### **Error Handling with Retries**
+
+You can still catch and handle errors after all retry attempts have failed:
+
+```typescript
+api.request({
+    url: '/data',
+    method: 'GET',
+    retries: 3,
+    retryDelay: 1000,
+    retryCondition: (error) => !error.response || error.response.status >= 500
+})
+    .then(response => {
+        console.log('Response:', response.data);
+    })
+    .catch(error => {
+        console.error('Request failed after retries:', error);
+    });
+```
+
+In this example, if the request fails after 3 retries, the error is caught in the `.catch()` block where you can handle it.
+
+---
+
+### **Common Use Cases for Retry Logic**
+
+1. **Network Instability**: Retry logic is particularly useful in situations where network connections may temporarily fail. Automatic retries can ensure that transient errors don’t result in a complete failure.
+   
+2. **Server-Side Issues**: Retrying requests in the event of a server error (status codes 5xx) can be helpful, especially if the issue is temporary and might resolve after a short delay.
+
+3. **Rate Limiting**: In cases where a server implements rate limiting, you might want to retry a request after a delay to give the server time to reset your rate limit.
+
+---
+
+### **Handling Exhausted Retries**
+
+Once all retries are exhausted, the error will be propagated back to the application, allowing you to handle it as you would any other error.
+
+```typescript
+api.request({
+    url: '/data',
+    method: 'GET',
+    retries: 3,
+    retryDelay: 1000,
+    retryCondition: (error) => !error.response || error.response.status >= 500
+})
+    .then(response => {
+        console.log('Response:', response.data);
+    })
+    .catch(error => {
+        // Handle the final error after all retry attempts have been exhausted
+        console.error('Request failed after retries:', error);
+    });
 ```
 
 ---
 
 ### **Conclusion**
 
-Interceptors in `ValpreAPI` are powerful tools that allow you to customize the behavior of HTTP requests and responses. They enable centralization of logic such as authentication, logging, error handling, and data transformation, making it easier to manage complex application workflows.
+Retry logic in `ValpreAPI` enhances the resilience of your application by automatically retrying failed requests based on custom conditions. This feature is especially useful for handling network issues, server errors, and temporary failures, improving the reliability of your HTTP requests.
 
-By leveraging request and response interceptors, you can ensure consistency across your application’s network communication while keeping your codebase clean and maintainable.
+By leveraging configurable retries, delays, and retry conditions, you can fine-tune how your application responds to transient failures, making your application more fault-tolerant and responsive to intermittent issues.
