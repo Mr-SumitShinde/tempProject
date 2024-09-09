@@ -1,32 +1,19 @@
-// instanceMethods.ts
-import { ValpreAPIServicesConfig } from './config';
-import { ValpreAPIServices } from './valpre-api-services';
+async request(config: ValpreAPIServicesConfig): Promise<Response> {
+    config = { ...this.defaults, ...config };
 
-export function instanceGet(this: ValpreAPIServices, url: string, config: ValpreAPIServicesConfig = {}): Promise<Response> {
-    // Call request directly, instead of calling `this.get()`
-    return this.request({ ...config, method: 'GET', url });
-}
+    if (config.baseURL && !/^https?:\/\//i.test(config.url!)) {
+        config.url = `${config.baseURL.replace(/\/+$/, '')}/${config.url!.replace(/^\/+/, '')}`;
+    }
 
-export function instancePost(this: ValpreAPIServices, url: string, data: any, config: ValpreAPIServicesConfig = {}): Promise<Response> {
-    return this.request({ ...config, method: 'POST', url, body: data });
-}
+    config = await this.interceptors.request.run(config);
 
-export function instancePut(this: ValpreAPIServices, url: string, data: any, config: ValpreAPIServicesConfig = {}): Promise<Response> {
-    return this.request({ ...config, method: 'PUT', url, body: data });
-}
+    applyCSRFToken(config);
+    config.body = handleRequestData(config.body, config.headers as Record<string, string>, config.transformRequest);
 
-export function instanceDelete(this: ValpreAPIServices, url: string, config: ValpreAPIServicesConfig = {}): Promise<Response> {
-    return this.request({ ...config, method: 'DELETE', url });
-}
+    const requestFn = () => this.adapter(config);
+    const response = await addRetryCapability(config, requestFn);
 
-export function instancePatch(this: ValpreAPIServices, url: string, data: any, config: ValpreAPIServicesConfig = {}): Promise<Response> {
-    return this.request({ ...config, method: 'PATCH', url, body: data });
-}
+    const transformedResponse = await handleResponseData(response, config.responseType, config.transformResponse);
 
-export function instanceHead(this: ValpreAPIServices, url: string, config: ValpreAPIServicesConfig = {}): Promise<Response> {
-    return this.request({ ...config, method: 'HEAD', url });
-}
-
-export function instanceOptions(this: ValpreAPIServices, url: string, config: ValpreAPIServicesConfig = {}): Promise<Response> {
-    return this.request({ ...config, method: 'OPTIONS', url });
+    return this.interceptors.response.run(transformedResponse);
 }
