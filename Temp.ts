@@ -1,33 +1,76 @@
-import { ValpreAPIServicesConfig } from './config';
-import * as UtilityMethods from './utilityMethods';
-import { CancelToken } from './cancelToken';
-import { ValpreAPIServicesError } from './utils/errorHandling';
+import { ValpreAPIServicesConfig } from '../src/config';
+import { ValpreAPIServicesError } from '../src/utils/errorHandling';
+import * as UtilityMethods from '../src/utilityMethods';
+import { ValpreAPIServices } from '../src/valpre-api-services';
+import fetchMock from 'jest-fetch-mock';
 
-export class ValpreAPIServices {
+fetchMock.enableMocks();
 
-    // ... existing code ...
+const mockConfig: ValpreAPIServicesConfig = {
+  baseURL: 'https://jsonplaceholder.typicode.com',
+  timeout: 5000,
+};
 
-    // Utility methods
+describe('UtilityMethods', () => {
+  beforeEach(() => {
+    fetchMock.resetMocks();
+  });
 
-    static setDefaults(newDefaults: Partial<ValpreAPIServicesConfig>): void {
-        UtilityMethods.setGlobalDefaults(newDefaults);
+  it('should set global defaults correctly', () => {
+    const newDefaults = { baseURL: 'https://new-api.com' };
+    UtilityMethods.setGlobalDefaults(newDefaults);
+    expect(mockConfig.baseURL).toBe(newDefaults.baseURL);
+  });
+
+  it('should create a new ValpreAPIServices instance with provided config', () => {
+    const instance = UtilityMethods.createInstance(mockConfig);
+    expect(instance).toBeInstanceOf(ValpreAPIServices);
+    expect(instance.defaults.baseURL).toBe(mockConfig.baseURL);
+  });
+
+  it('should return true if the error is an instance of ValpreAPIServicesError', () => {
+    const error = new ValpreAPIServicesError('Test Error');
+    expect(UtilityMethods.isValpreAPIServicesError(error)).toBe(true);
+  });
+
+  it('should return false if the error is not an instance of ValpreAPIServicesError', () => {
+    const error = new Error('Generic Error');
+    expect(UtilityMethods.isValpreAPIServicesError(error)).toBe(false);
+  });
+
+  it('should resolve all promises', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ data: 'Response 1' }));
+    fetchMock.mockResponseOnce(JSON.stringify({ data: 'Response 2' }));
+
+    const promise1 = fetch(`${mockConfig.baseURL}/todos/1`);
+    const promise2 = fetch(`${mockConfig.baseURL}/todos/2`);
+
+    const results = await UtilityMethods.all([promise1, promise2]);
+    const jsonResults = await Promise.all(results.map(res => res.json()));
+
+    expect(jsonResults).toEqual([{ data: 'Response 1' }, { data: 'Response 2' }]);
+  });
+
+  it('should reject if any promise fails', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ data: 'Response 1' }));
+    fetchMock.mockRejectOnce(new Error('Error in API'));
+
+    const promise1 = fetch(`${mockConfig.baseURL}/todos/1`);
+    const promise2 = fetch(`${mockConfig.baseURL}/todos/invalid`);
+
+    try {
+      await UtilityMethods.all([promise1, promise2]);
+    } catch (error) {
+      expect(error.message).toBe('Error in API');
     }
+  });
 
-    static create(instanceConfig: ValpreAPIServicesConfig): ValpreAPIServices {
-        return UtilityMethods.createInstance(instanceConfig);
-    }
+  it('should spread results correctly into the callback', () => {
+    const mockCallback = jest.fn();
+    const wrapped = UtilityMethods.spread(mockCallback);
 
-    static CancelToken = CancelToken;
+    wrapped([1, 2, 3]);
 
-    static isValpreAPIServicesError(error: any): error is ValpreAPIServicesError {
-        return UtilityMethods.isValpreAPIServicesError(error);
-    }
-
-    static all(promises: Array<Promise<any>>): Promise<any[]> {
-        return UtilityMethods.all(promises);
-    }
-
-    static spread(callback: Function): (arr: any[]) => any {
-        return UtilityMethods.spread(callback);
-    }
-}
+    expect(mockCallback).toHaveBeenCalledWith(1, 2, 3);
+  });
+});
