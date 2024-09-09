@@ -1,67 +1,48 @@
-import { applyCSRFToken } from '../src/utils/csurf';
-import { ValpreAPIServicesConfig } from '../src/config';
+import { ValpreAPIServicesConfig } from './config';
+import { ValpreAPIServices } from './valpre-api-services';
 
-describe('applyCSRFToken', () => {
-  let getCookieSpy: jest.SpyInstance;
+// Define a limited class that only exposes selected features
+export class ValpreAPIServicesLimited {
+    private api: ValpreAPIServices;
 
-  beforeEach(() => {
-    getCookieSpy = jest.spyOn(document, 'cookie', 'get').mockReturnValue('csrftoken=mockedToken');
-  });
+    constructor(config: ValpreAPIServicesConfig) {
+        this.api = new ValpreAPIServices(config);
+    }
 
-  afterEach(() => {
-    getCookieSpy.mockRestore();
-  });
+    // Expose only the allowed HTTP methods
+    get(url: string, config?: ValpreAPIServicesConfig) {
+        return this.api.get(url, config);
+    }
 
-  it('should apply XSRF token to headers when withCredentials is true and xsrfCookieName is set', () => {
-    const config: ValpreAPIServicesConfig = {
-      withCredentials: true,
-      xsrfCookieName: 'csrftoken',
-      xsrfHeaderName: 'X-CSRF-Token',
-      headers: {},
-    };
+    post(url: string, data: any, config?: ValpreAPIServicesConfig) {
+        return this.api.post(url, data, config);
+    }
 
-    applyCSRFToken(config);
+    put(url: string, data: any, config?: ValpreAPIServicesConfig) {
+        return this.api.put(url, data, config);
+    }
 
-    expect(config.headers!['X-CSRF-Token']).toBe('mockedToken');
-  });
+    delete(url: string, config?: ValpreAPIServicesConfig) {
+        return this.api.delete(url, config);
+    }
 
-  it('should not apply XSRF token if withCredentials is false', () => {
-    const config: ValpreAPIServicesConfig = {
-      withCredentials: false,
-      xsrfCookieName: 'csrftoken',
-      xsrfHeaderName: 'X-CSRF-Token',
-      headers: {},
-    };
+    patch(url: string, data: any, config?: ValpreAPIServicesConfig) {
+        return this.api.patch(url, data, config);
+    }
 
-    applyCSRFToken(config);
+    head(url: string, config?: ValpreAPIServicesConfig) {
+        return this.api.head(url, config);
+    }
 
-    expect(config.headers!['X-CSRF-Token']).toBeUndefined();
-  });
+    options(url: string, config?: ValpreAPIServicesConfig) {
+        return this.api.options(url, config);
+    }
 
-  it('should not apply XSRF token if cookie does not exist', () => {
-    getCookieSpy.mockReturnValue('');
+    // Request method for direct control
+    request(config: ValpreAPIServicesConfig) {
+        return this.api.request(config);
+    }
 
-    const config: ValpreAPIServicesConfig = {
-      withCredentials: true,
-      xsrfCookieName: 'nonexistentCookie',
-      xsrfHeaderName: 'X-CSRF-Token',
-      headers: {},
-    };
-
-    applyCSRFToken(config);
-
-    expect(config.headers!['X-CSRF-Token']).toBeUndefined();
-  });
-
-  it('should not apply XSRF token if xsrfHeaderName is not set', () => {
-    const config: ValpreAPIServicesConfig = {
-      withCredentials: true,
-      xsrfCookieName: 'csrftoken',
-      headers: {},
-    };
-
-    applyCSRFToken(config);
-
-    expect(config.headers!['X-CSRF-Token']).toBeUndefined();
-  });
-});
+    // Prevent access to other internal methods
+    // For example, don't expose instance methods, utility methods, etc.
+}
