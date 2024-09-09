@@ -1,69 +1,68 @@
+import { applyCSRFToken } from '../src/utils/csurf';
 import { ValpreAPIServicesConfig } from '../src/config';
-import { ValpreAPIServicesError } from '../src/utils/errorHandling';
-import * as UtilityMethods from '../src/utilityMethods';
-import { ValpreAPIServices } from '../src/valpre-api-services';
 
-const mockConfig: ValpreAPIServicesConfig = {
-  baseURL: 'https://jsonplaceholder.typicode.com',
-  timeout: 5000,
-};
+describe('applyCSRFToken', () => {
+  let originalCookie: string;
 
-describe('UtilityMethods', () => {
-  it('should set global defaults correctly', () => {
-    const newDefaults = { baseURL: 'https://new-api.com' };
-    UtilityMethods.setGlobalDefaults(newDefaults);
-    expect(mockConfig.baseURL).toBe(newDefaults.baseURL);
+  beforeEach(() => {
+    originalCookie = document.cookie;
+    document.cookie = 'csrftoken=mockedToken';
   });
 
-  it('should create a new ValpreAPIServices instance with provided config', () => {
-    const instance = UtilityMethods.createInstance(mockConfig);
-    expect(instance).toBeInstanceOf(ValpreAPIServices);
-    expect(instance.defaults.baseURL).toBe(mockConfig.baseURL);
+  afterEach(() => {
+    document.cookie = originalCookie;
   });
 
-  it('should return true if the error is an instance of ValpreAPIServicesError', () => {
-    const error = new ValpreAPIServicesError('Test Error');
-    expect(UtilityMethods.isValpreAPIServicesError(error)).toBe(true);
+  it('should apply XSRF token to headers when withCredentials is true and xsrfCookieName is set', () => {
+    const config: ValpreAPIServicesConfig = {
+      withCredentials: true,
+      xsrfCookieName: 'csrftoken',
+      xsrfHeaderName: 'X-CSRF-Token',
+      headers: {},
+    };
+
+    applyCSRFToken(config);
+
+    expect(config.headers!['X-CSRF-Token']).toBe('mockedToken');
   });
 
-  it('should return false if the error is not an instance of ValpreAPIServicesError', () => {
-    const error = new Error('Generic Error');
-    expect(UtilityMethods.isValpreAPIServicesError(error)).toBe(false);
+  it('should not apply XSRF token if withCredentials is false', () => {
+    const config: ValpreAPIServicesConfig = {
+      withCredentials: false,
+      xsrfCookieName: 'csrftoken',
+      xsrfHeaderName: 'X-CSRF-Token',
+      headers: {},
+    };
+
+    applyCSRFToken(config);
+
+    expect(config.headers!['X-CSRF-Token']).toBeUndefined();
   });
 
-  it('should resolve all promises', async () => {
-    const promise1 = Promise.resolve({
-      json: () => Promise.resolve({ data: 'Response 1' }),
-    });
-    const promise2 = Promise.resolve({
-      json: () => Promise.resolve({ data: 'Response 2' }),
-    });
+  it('should not apply XSRF token if cookie does not exist', () => {
+    document.cookie = ''; // Clear the mock cookie
 
-    const results = await UtilityMethods.all([promise1, promise2]);
-    const jsonResults = await Promise.all(results.map(res => res.json()));
+    const config: ValpreAPIServicesConfig = {
+      withCredentials: true,
+      xsrfCookieName: 'nonexistentCookie',
+      xsrfHeaderName: 'X-CSRF-Token',
+      headers: {},
+    };
 
-    expect(jsonResults).toEqual([{ data: 'Response 1' }, { data: 'Response 2' }]);
+    applyCSRFToken(config);
+
+    expect(config.headers!['X-CSRF-Token']).toBeUndefined();
   });
 
-  it('should reject if any promise fails', async () => {
-    const promise1 = Promise.resolve({
-      json: () => Promise.resolve({ data: 'Response 1' }),
-    });
-    const promise2 = Promise.reject(new Error('Error in API'));
+  it('should not apply XSRF token if xsrfHeaderName is not set', () => {
+    const config: ValpreAPIServicesConfig = {
+      withCredentials: true,
+      xsrfCookieName: 'csrftoken',
+      headers: {},
+    };
 
-    try {
-      await UtilityMethods.all([promise1, promise2]);
-    } catch (error) {
-      expect(error.message).toBe('Error in API');
-    }
-  });
+    applyCSRFToken(config);
 
-  it('should spread results correctly into the callback', () => {
-    const mockCallback = jest.fn();
-    const wrapped = UtilityMethods.spread(mockCallback);
-
-    wrapped([1, 2, 3]);
-
-    expect(mockCallback).toHaveBeenCalledWith(1, 2, 3);
+    expect(config.headers!['X-CSRF-Token']).toBeUndefined();
   });
 });
