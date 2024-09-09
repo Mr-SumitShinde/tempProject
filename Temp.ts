@@ -16,10 +16,8 @@ describe('ValpreAPIServicesLimited', () => {
     let mockRequest: jest.SpyInstance;
 
     beforeEach(() => {
-        // Create a new instance of ValpreAPIServicesLimited
         api = new ValpreAPIServicesLimited({ baseURL: 'https://example.com' });
 
-        // Mock the instance methods of ValpreAPIServices
         mockGet = jest.spyOn(ValpreAPIServices.prototype, 'get').mockResolvedValue(mockResponse({ data: 'mockData' }));
         mockPost = jest.spyOn(ValpreAPIServices.prototype, 'post').mockResolvedValue(mockResponse({ data: 'mockData' }));
         mockPut = jest.spyOn(ValpreAPIServices.prototype, 'put').mockResolvedValue(mockResponse({ data: 'mockData' }));
@@ -31,15 +29,16 @@ describe('ValpreAPIServicesLimited', () => {
     });
 
     afterEach(() => {
-        jest.restoreAllMocks(); // Restore original methods after each test
+        jest.restoreAllMocks();
     });
 
-    const mockResponse = (data: any) => {
-        return {
-            ok: true,
-            status: 200,
-            json: jest.fn().mockResolvedValue(data)
-        };
+    // Helper function to mock a Response object
+    const mockResponse = (data: any, status = 200): Response => {
+        const jsonString = JSON.stringify(data);
+        return new Response(jsonString, {
+            status,
+            headers: { 'Content-type': 'application/json' }
+        });
     };
 
     it('should call the get method with the correct arguments', async () => {
