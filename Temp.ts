@@ -1,25 +1,33 @@
-import { ValpreAPIServices } from './valpre-api-services';
-import { setDefaults, ValpreAPIServicesConfig } from './config';
+import { ValpreAPIServicesConfig } from './config';
+import * as UtilityMethods from './utilityMethods';
+import { CancelToken } from './cancelToken';
 import { ValpreAPIServicesError } from './utils/errorHandling';
 
-export function setGlobalDefaults(newDefaults: Partial<ValpreAPIServicesConfig>): void {
-    Object.assign(setDefaults, newDefaults);
-}
+export class ValpreAPIServices {
 
-export function isValpreAPIServicesError(error: any): error is ValpreAPIServicesError {
-    return error instanceof ValpreAPIServicesError;
-}
+    // ... existing code ...
 
-export function createInstance(config: ValpreAPIServicesConfig): ValpreAPIServices {
-    return new ValpreAPIServices(config);
-}
+    // Utility methods
 
-export function all(promises: Array<Promise<any>>): Promise<any[]> {
-    return Promise.all(promises);
-}
+    static setDefaults(newDefaults: Partial<ValpreAPIServicesConfig>): void {
+        UtilityMethods.setGlobalDefaults(newDefaults);
+    }
 
-export function spread(callback: Function): (arr: any[]) => any {
-    return function wrap(arr: any[]) {
-        return callback(...arr);
-    };
+    static create(instanceConfig: ValpreAPIServicesConfig): ValpreAPIServices {
+        return UtilityMethods.createInstance(instanceConfig);
+    }
+
+    static CancelToken = CancelToken;
+
+    static isValpreAPIServicesError(error: any): error is ValpreAPIServicesError {
+        return UtilityMethods.isValpreAPIServicesError(error);
+    }
+
+    static all(promises: Array<Promise<any>>): Promise<any[]> {
+        return UtilityMethods.all(promises);
+    }
+
+    static spread(callback: Function): (arr: any[]) => any {
+        return UtilityMethods.spread(callback);
+    }
 }
