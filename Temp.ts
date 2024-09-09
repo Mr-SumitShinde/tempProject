@@ -1,19 +1,15 @@
-async request(config: ValpreAPIServicesConfig): Promise<Response> {
-    config = { ...this.defaults, ...config };
+import { ValpreAPIServices } from './valpre-api-services';
+import { setDefaults, ValpreAPIServicesConfig } from './config';
+import { ValpreAPIServicesError } from './utils/errorHandling';
 
-    if (config.baseURL && !/^https?:\/\//i.test(config.url!)) {
-        config.url = `${config.baseURL.replace(/\/+$/, '')}/${config.url!.replace(/^\/+/, '')}`;
-    }
+export function setGlobalDefaults(newDefaults: Partial<ValpreAPIServicesConfig>): void {
+    Object.assign(setDefaults, newDefaults);
+}
 
-    config = await this.interceptors.request.run(config);
+export function isValpreAPIServicesError(error: any): error is ValpreAPIServicesError {
+    return error instanceof ValpreAPIServicesError;
+}
 
-    applyCSRFToken(config);
-    config.body = handleRequestData(config.body, config.headers as Record<string, string>, config.transformRequest);
-
-    const requestFn = () => this.adapter(config);
-    const response = await addRetryCapability(config, requestFn);
-
-    const transformedResponse = await handleResponseData(response, config.responseType, config.transformResponse);
-
-    return this.interceptors.response.run(transformedResponse);
+export function createInstance(config: ValpreAPIServicesConfig): ValpreAPIServices {
+    return new ValpreAPIServices(config);
 }
