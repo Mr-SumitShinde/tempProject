@@ -1,4 +1,4 @@
-async request(config: ValpreAPIServicesConfig): Promise<any> { // Change to 'any' to reflect different data types
+async request(config: ValpreAPIServicesConfig): Promise<any> {
     config = { ...this.defaults, ...config };
 
     if (config.baseURL && !/^https?:\/\//i.test(config.url!)) {
@@ -13,23 +13,29 @@ async request(config: ValpreAPIServicesConfig): Promise<any> { // Change to 'any
     const requestFn = () => this.adapter(config);
     const response = await addRetryCapability(config, requestFn);
 
-    // Automatically handle the response body based on content type
     const contentType = response.headers.get('Content-Type') || '';
-
     let parsedBody: any;
-    if (contentType.includes('application/json')) {
-        parsedBody = await response.json(); // Parse JSON automatically
-    } else if (contentType.includes('text/')) {
-        parsedBody = await response.text(); // Parse text automatically
+
+    // Allow users to disable automatic parsing via config
+    if (config.autoParseResponse !== false) { 
+        try {
+            if (contentType.includes('application/json')) {
+                parsedBody = await response.json();
+            } else if (contentType.includes('text/')) {
+                parsedBody = await response.text();
+            } else {
+                parsedBody = await response.blob();
+            }
+        } catch (error) {
+            throw new Error(`Failed to parse response: ${error.message}`);
+        }
     } else {
-        parsedBody = await response.blob(); // Handle binary data (e.g., images, files)
+        parsedBody = response; // Return the raw response if autoParseResponse is disabled
     }
 
     const transformedResponse = await handleResponseData(response, config.responseType, config.transformResponse);
-    
-    // Return the parsed body along with the original response
     return {
         ...transformedResponse,
-        data: parsedBody, // Add parsed data to the response
+        data: parsedBody,
     };
 }
