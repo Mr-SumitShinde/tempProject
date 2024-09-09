@@ -1,28 +1,64 @@
-const express = require('express');
-const app = express();
-const PORT = 3000;
+npm install stream-http https-browserify url
 
-// Middleware to parse incoming JSON requests
-app.use(express.json());
 
-// Example API endpoint
-app.get('/api', (req, res) => {
-    res.json({ message: 'Welcome to the API!' });
-});
+import http from 'http';
+import https from 'https';
+import { URL } from 'url';
 
-// Another endpoint example
-app.get('/api/user/:id', (req, res) => {
-    const userId = req.params.id;
-    res.json({ userId, name: "John Doe" });
-});
+export async function httpAdapter(config: any) {
+    return new Promise((resolve, reject) => {
+        const { url, method = 'GET', headers = {}, data = null } = config;
 
-// POST example
-app.post('/api/user', (req, res) => {
-    const newUser = req.body;
-    res.status(201).json({ message: 'User created', newUser });
-});
+        // Parse the URL using the polyfilled URL module
+        const parsedUrl = new URL(url);
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+        // Determine whether to use http or https
+        const transport = parsedUrl.protocol === 'https:' ? https : http;
+
+        const options = {
+            method,
+            headers,
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port,
+            path: parsedUrl.pathname + parsedUrl.search,
+        };
+
+        // Make the HTTP/HTTPS request using the polyfilled http/https modules
+        const req = transport.request(options, (res) => {
+            let responseData = '';
+
+            // Collect the response data
+            res.on('data', (chunk) => {
+                responseData += chunk;
+            });
+
+            // Resolve the promise when the response ends
+            res.on('end', () => {
+                try {
+                    const data = JSON.parse(responseData);
+                    resolve({
+                        data,
+                        status: res.statusCode,
+                        headers: res.headers,
+                        config,
+                        request: req,
+                    });
+                } catch (error) {
+                    reject(new Error('Failed to parse response data'));
+                }
+            });
+        });
+
+        // Handle request errors
+        req.on('error', (err) => {
+            reject(err);
+        });
+
+        // Write request data if provided
+        if (data) {
+            req.write(data);
+        }
+
+        req.end();
+    });
+}
