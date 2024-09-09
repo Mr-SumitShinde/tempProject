@@ -1,113 +1,35 @@
-import { ValpreAPIServicesLimited } from './valpre-api-services-limited';
-import { ValpreAPIServices } from './valpre-api-services';
+async request(config: ValpreAPIServicesConfig): Promise<any> { // Change to 'any' to reflect different data types
+    config = { ...this.defaults, ...config };
 
-// Mock ValpreAPIServices class
-jest.mock('./valpre-api-services');
+    if (config.baseURL && !/^https?:\/\//i.test(config.url!)) {
+        config.url = `${config.baseURL.replace(/\/+$/, '')}/${config.url!.replace(/^\/+/, '')}`;
+    }
 
-describe('ValpreAPIServicesLimited', () => {
-    let api: ValpreAPIServicesLimited;
-    let mockGet: jest.SpyInstance;
-    let mockPost: jest.SpyInstance;
-    let mockPut: jest.SpyInstance;
-    let mockDelete: jest.SpyInstance;
-    let mockPatch: jest.SpyInstance;
-    let mockHead: jest.SpyInstance;
-    let mockOptions: jest.SpyInstance;
-    let mockRequest: jest.SpyInstance;
+    config = await this.interceptors.request.run(config);
 
-    beforeEach(() => {
-        // Create a new instance of ValpreAPIServicesLimited
-        api = new ValpreAPIServicesLimited({ baseURL: 'https://example.com' });
+    applyCSRFToken(config);
+    config.body = handleRequestData(config.body, config.headers as Record<string, string>, config.transformRequest);
 
-        // Mock the instance methods of ValpreAPIServices
-        mockGet = jest.spyOn(ValpreAPIServices.prototype, 'get').mockResolvedValue(mockResponse({ data: 'mockData' }));
-        mockPost = jest.spyOn(ValpreAPIServices.prototype, 'post').mockResolvedValue(mockResponse({ data: 'mockData' }));
-        mockPut = jest.spyOn(ValpreAPIServices.prototype, 'put').mockResolvedValue(mockResponse({ data: 'mockData' }));
-        mockDelete = jest.spyOn(ValpreAPIServices.prototype, 'delete').mockResolvedValue(mockResponse({ data: 'mockData' }));
-        mockPatch = jest.spyOn(ValpreAPIServices.prototype, 'patch').mockResolvedValue(mockResponse({ data: 'mockData' }));
-        mockHead = jest.spyOn(ValpreAPIServices.prototype, 'head').mockResolvedValue(mockResponse({ data: 'mockData' }));
-        mockOptions = jest.spyOn(ValpreAPIServices.prototype, 'options').mockResolvedValue(mockResponse({ data: 'mockData' }));
-        mockRequest = jest.spyOn(ValpreAPIServices.prototype, 'request').mockResolvedValue(mockResponse({ data: 'mockData' }));
-    });
+    const requestFn = () => this.adapter(config);
+    const response = await addRetryCapability(config, requestFn);
 
-    afterEach(() => {
-        jest.restoreAllMocks(); // Restore original methods after each test
-    });
+    // Automatically handle the response body based on content type
+    const contentType = response.headers.get('Content-Type') || '';
 
-    // Helper function to mock a Response object
-    const mockResponse = (data: any, status = 200): any => {
-        return {
-            ok: status >= 200 && status < 300,
-            status,
-            json: jest.fn().mockResolvedValue(data),
-            headers: { 'Content-Type': 'application/json' }
-        };
+    let parsedBody: any;
+    if (contentType.includes('application/json')) {
+        parsedBody = await response.json(); // Parse JSON automatically
+    } else if (contentType.includes('text/')) {
+        parsedBody = await response.text(); // Parse text automatically
+    } else {
+        parsedBody = await response.blob(); // Handle binary data (e.g., images, files)
+    }
+
+    const transformedResponse = await handleResponseData(response, config.responseType, config.transformResponse);
+    
+    // Return the parsed body along with the original response
+    return {
+        ...transformedResponse,
+        data: parsedBody, // Add parsed data to the response
     };
-
-    it('should call the get method with the correct arguments', async () => {
-        const url = '/endpoint';
-        const response = await api.get(url);
-        const data = await response.json();
-        expect(mockGet).toHaveBeenCalledWith(url, undefined);
-        expect(data.data).toBe('mockData');
-    });
-
-    it('should call the post method with the correct arguments', async () => {
-        const url = '/endpoint';
-        const data = { key: 'value' };
-        const response = await api.post(url, data);
-        const responseData = await response.json();
-        expect(mockPost).toHaveBeenCalledWith(url, data, undefined);
-        expect(responseData.data).toBe('mockData');
-    });
-
-    it('should call the put method with the correct arguments', async () => {
-        const url = '/endpoint';
-        const data = { key: 'value' };
-        const response = await api.put(url, data);
-        const responseData = await response.json();
-        expect(mockPut).toHaveBeenCalledWith(url, data, undefined);
-        expect(responseData.data).toBe('mockData');
-    });
-
-    it('should call the delete method with the correct arguments', async () => {
-        const url = '/endpoint';
-        const response = await api.delete(url);
-        const responseData = await response.json();
-        expect(mockDelete).toHaveBeenCalledWith(url, undefined);
-        expect(responseData.data).toBe('mockData');
-    });
-
-    it('should call the patch method with the correct arguments', async () => {
-        const url = '/endpoint';
-        const data = { key: 'value' };
-        const response = await api.patch(url, data);
-        const responseData = await response.json();
-        expect(mockPatch).toHaveBeenCalledWith(url, data, undefined);
-        expect(responseData.data).toBe('mockData');
-    });
-
-    it('should call the head method with the correct arguments', async () => {
-        const url = '/endpoint';
-        const response = await api.head(url);
-        const responseData = await response.json();
-        expect(mockHead).toHaveBeenCalledWith(url, undefined);
-        expect(responseData.data).toBe('mockData');
-    });
-
-    it('should call the options method with the correct arguments', async () => {
-        const url = '/endpoint';
-        const response = await api.options(url);
-        const responseData = await response.json();
-        expect(mockOptions).toHaveBeenCalledWith(url, undefined);
-        expect(responseData.data).toBe('mockData');
-    });
-
-    it('should call the request method with the correct config', async () => {
-        const config = { method: 'GET', url: '/endpoint' };
-        const response = await api.request(config);
-        const responseData = await response.json();
-        expect(mockRequest).toHaveBeenCalledWith(config);
-        expect(responseData.data).toBe('mockData');
-    });
-});
+}
