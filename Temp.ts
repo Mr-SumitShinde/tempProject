@@ -2,15 +2,14 @@ import { applyCSRFToken } from '../src/utils/csurf';
 import { ValpreAPIServicesConfig } from '../src/config';
 
 describe('applyCSRFToken', () => {
-  let originalCookie: string;
+  let getCookieSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    originalCookie = document.cookie;
-    document.cookie = 'csrftoken=mockedToken';
+    getCookieSpy = jest.spyOn(document, 'cookie', 'get').mockReturnValue('csrftoken=mockedToken');
   });
 
   afterEach(() => {
-    document.cookie = originalCookie;
+    getCookieSpy.mockRestore();
   });
 
   it('should apply XSRF token to headers when withCredentials is true and xsrfCookieName is set', () => {
@@ -40,7 +39,7 @@ describe('applyCSRFToken', () => {
   });
 
   it('should not apply XSRF token if cookie does not exist', () => {
-    document.cookie = ''; // Clear the mock cookie
+    getCookieSpy.mockReturnValue('');
 
     const config: ValpreAPIServicesConfig = {
       withCredentials: true,
