@@ -1,43 +1,32 @@
+// instanceMethods.ts
 import { ValpreAPIServicesConfig } from './config';
+import { ValpreAPIServices } from './valpre-api-services';
 
-export async function httpAdapter(config: ValpreAPIServicesConfig): Promise<Response> {
-    return new Promise((resolve, reject) => {
-        // Using the fetch API to make the request
-        const options: RequestInit = {
-            method: config.method,
-            headers: config.headers as HeadersInit,
-            body: typeof config.body === 'string' ? config.body : JSON.stringify(config.body),
-        };
+export function instanceGet(this: ValpreAPIServices, url: string, config: ValpreAPIServicesConfig = {}): Promise<Response> {
+    // Call request directly, instead of calling `this.get()`
+    return this.request({ ...config, method: 'GET', url });
+}
 
-        // Use the fetch API to send the request
-        fetch(config.url!, options)
-            .then(async (res) => {
-                const body = await res.text();
-                const response = new Response(body, {
-                    status: res.status,
-                    statusText: res.statusText,
-                    headers: new Headers(
-                        Object.entries(res.headers as unknown as Record<string, string>).reduce(
-                            (acc, [key, value]) => {
-                                acc[key] = value;
-                                return acc;
-                            },
-                            {} as Record<string, string>
-                        )
-                    ),
-                });
+export function instancePost(this: ValpreAPIServices, url: string, data: any, config: ValpreAPIServicesConfig = {}): Promise<Response> {
+    return this.request({ ...config, method: 'POST', url, body: data });
+}
 
-                resolve(response);
-            })
-            .catch((err) => {
-                reject(err);
-            });
+export function instancePut(this: ValpreAPIServices, url: string, data: any, config: ValpreAPIServicesConfig = {}): Promise<Response> {
+    return this.request({ ...config, method: 'PUT', url, body: data });
+}
 
-        // Handle timeout if it's set in the configuration
-        if (config.timeout) {
-            setTimeout(() => {
-                reject(new Error('Request timed out'));
-            }, config.timeout);
-        }
-    });
+export function instanceDelete(this: ValpreAPIServices, url: string, config: ValpreAPIServicesConfig = {}): Promise<Response> {
+    return this.request({ ...config, method: 'DELETE', url });
+}
+
+export function instancePatch(this: ValpreAPIServices, url: string, data: any, config: ValpreAPIServicesConfig = {}): Promise<Response> {
+    return this.request({ ...config, method: 'PATCH', url, body: data });
+}
+
+export function instanceHead(this: ValpreAPIServices, url: string, config: ValpreAPIServicesConfig = {}): Promise<Response> {
+    return this.request({ ...config, method: 'HEAD', url });
+}
+
+export function instanceOptions(this: ValpreAPIServices, url: string, config: ValpreAPIServicesConfig = {}): Promise<Response> {
+    return this.request({ ...config, method: 'OPTIONS', url });
 }
