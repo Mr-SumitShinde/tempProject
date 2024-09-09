@@ -13,3 +13,13 @@ export function isValpreAPIServicesError(error: any): error is ValpreAPIServices
 export function createInstance(config: ValpreAPIServicesConfig): ValpreAPIServices {
     return new ValpreAPIServices(config);
 }
+
+export function all(promises: Array<Promise<any>>): Promise<any[]> {
+    return Promise.all(promises);
+}
+
+export function spread(callback: Function): (arr: any[]) => any {
+    return function wrap(arr: any[]) {
+        return callback(...arr);
+    };
+}
