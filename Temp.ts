@@ -2,9 +2,6 @@ import { ValpreAPIServicesConfig } from '../src/config';
 import { ValpreAPIServicesError } from '../src/utils/errorHandling';
 import * as UtilityMethods from '../src/utilityMethods';
 import { ValpreAPIServices } from '../src/valpre-api-services';
-import fetchMock from 'jest-fetch-mock';
-
-fetchMock.enableMocks();
 
 const mockConfig: ValpreAPIServicesConfig = {
   baseURL: 'https://jsonplaceholder.typicode.com',
@@ -12,10 +9,6 @@ const mockConfig: ValpreAPIServicesConfig = {
 };
 
 describe('UtilityMethods', () => {
-  beforeEach(() => {
-    fetchMock.resetMocks();
-  });
-
   it('should set global defaults correctly', () => {
     const newDefaults = { baseURL: 'https://new-api.com' };
     UtilityMethods.setGlobalDefaults(newDefaults);
@@ -39,11 +32,12 @@ describe('UtilityMethods', () => {
   });
 
   it('should resolve all promises', async () => {
-    fetchMock.mockResponseOnce(JSON.stringify({ data: 'Response 1' }));
-    fetchMock.mockResponseOnce(JSON.stringify({ data: 'Response 2' }));
-
-    const promise1 = fetch(`${mockConfig.baseURL}/todos/1`);
-    const promise2 = fetch(`${mockConfig.baseURL}/todos/2`);
+    const promise1 = Promise.resolve({
+      json: () => Promise.resolve({ data: 'Response 1' }),
+    });
+    const promise2 = Promise.resolve({
+      json: () => Promise.resolve({ data: 'Response 2' }),
+    });
 
     const results = await UtilityMethods.all([promise1, promise2]);
     const jsonResults = await Promise.all(results.map(res => res.json()));
@@ -52,11 +46,10 @@ describe('UtilityMethods', () => {
   });
 
   it('should reject if any promise fails', async () => {
-    fetchMock.mockResponseOnce(JSON.stringify({ data: 'Response 1' }));
-    fetchMock.mockRejectOnce(new Error('Error in API'));
-
-    const promise1 = fetch(`${mockConfig.baseURL}/todos/1`);
-    const promise2 = fetch(`${mockConfig.baseURL}/todos/invalid`);
+    const promise1 = Promise.resolve({
+      json: () => Promise.resolve({ data: 'Response 1' }),
+    });
+    const promise2 = Promise.reject(new Error('Error in API'));
 
     try {
       await UtilityMethods.all([promise1, promise2]);
