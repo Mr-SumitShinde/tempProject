@@ -18,20 +18,26 @@ export async function httpAdapter(config: ValpreAPIServicesConfig): Promise<Resp
                 let parsedBody: any;
 
                 try {
-                    // Automatically parse response based on Content-Type
                     if (contentType.includes('application/json')) {
-                        parsedBody = await res.json();
+                        const textBody = await res.text();
+
+                        // Try parsing the response as JSON manually
+                        try {
+                            parsedBody = JSON.parse(textBody);
+                        } catch (jsonError) {
+                            // The response is not valid JSON even though Content-Type says 'application/json'
+                            throw new Error(`Invalid JSON response: ${textBody}`);
+                        }
                     } else if (contentType.includes('text/')) {
                         parsedBody = await res.text();
                     } else {
-                        parsedBody = await res.blob(); // Handle binary data
+                        parsedBody = await res.blob();
                     }
                 } catch (error) {
                     reject(new Error(`Failed to parse response: ${error.message}`));
                     return;
                 }
 
-                // Check if the response is okay (status in the range of 200-299)
                 if (res.ok) {
                     resolve(new Response(parsedBody, {
                         status: res.status,
@@ -43,7 +49,6 @@ export async function httpAdapter(config: ValpreAPIServicesConfig): Promise<Resp
                 }
             })
             .catch((err) => {
-                // Handle network or fetch-related errors
                 if (err.name === 'AbortError') {
                     reject(new Error('Request timed out'));
                 } else {
