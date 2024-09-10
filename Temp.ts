@@ -1,65 +1,59 @@
-import { ValpreAPIServicesConfig } from './config';
+async request(config: ValpreAPIServicesConfig): Promise<any> {
+    // Merge default config with user-provided config
+    config = { ...this.defaults, ...config };
 
-export async function httpAdapter(config: ValpreAPIServicesConfig): Promise<Response> {
-    return new Promise((resolve, reject) => {
-        const controller = new AbortController();
-        const { signal } = controller;
+    // Add baseURL if it's not an absolute URL
+    if (config.baseURL && !/^https?:\/\//i.test(config.url!)) {
+        config.url = `${config.baseURL.replace(/\/+$/, '')}/${config.url!.replace(/^\/+/, '')}`;
+    }
 
-        const options: RequestInit = {
-            method: config.method,
-            headers: config.headers as HeadersInit,
-            body: typeof config.body === 'string' ? config.body : JSON.stringify(config.body),
-            signal,
-        };
+    // Run request interceptors
+    config = await this.interceptors.request.run(config);
 
-        fetch(config.url!, options)
-            .then(async (res) => {
-                const contentType = res.headers.get('Content-Type') || '';
-                let parsedBody: any;
+    // Apply CSRF token if needed
+    applyCSRFToken(config);
 
-                try {
-                    if (contentType.includes('application/json')) {
-                        const textBody = await res.text();
+    // Transform request body if applicable
+    config.body = handleRequestData(
+        config.body,
+        config.headers as Record<string, string>,
+        config.transformRequest
+    );
 
-                        // Try parsing the response as JSON manually
-                        try {
-                            parsedBody = JSON.parse(textBody);
-                        } catch (jsonError) {
-                            // The response is not valid JSON even though Content-Type says 'application/json'
-                            throw new Error(`Invalid JSON response: ${textBody}`);
-                        }
-                    } else if (contentType.includes('text/')) {
-                        parsedBody = await res.text();
-                    } else {
-                        parsedBody = await res.blob();
-                    }
-                } catch (error) {
-                    reject(new Error(`Failed to parse response: ${error.message}`));
-                    return;
-                }
+    // Call the adapter (httpAdapter)
+    const requestFn = () => this.adapter(config);
+    const response = await addRetryCapability(config, requestFn);
 
-                if (res.ok) {
-                    resolve(new Response(parsedBody, {
-                        status: res.status,
-                        statusText: res.statusText,
-                        headers: res.headers,
-                    }));
-                } else {
-                    reject(new Error(`HTTP Error: ${res.status} - ${res.statusText}`));
-                }
-            })
-            .catch((err) => {
-                if (err.name === 'AbortError') {
-                    reject(new Error('Request timed out'));
-                } else {
-                    reject(new Error(`Network Error: ${err.message}`));
-                }
-            });
+    // Handle response parsing
+    const contentType = response.headers.get('Content-Type') || '';
+    let parsedBody: any;
 
-        if (config.timeout) {
-            setTimeout(() => {
-                controller.abort();
-            }, config.timeout);
+    if (config.autoParseResponse !== false) {
+        try {
+            if (contentType.includes('application/json')) {
+                parsedBody = await response.json(); // Parse JSON
+            } else if (contentType.includes('text/')) {
+                parsedBody = await response.text(); // Parse text
+            } else {
+                parsedBody = await response.blob(); // Handle binary data
+            }
+        } catch (error: any) {
+            throw new Error(`Failed to parse response: ${error.message}`);
         }
-    });
+    } else {
+        // If autoParseResponse is disabled, return the raw response
+        parsedBody = response;
+    }
+
+    // Apply response interceptors and return the final parsed response
+    const transformedResponse = await handleResponseData(
+        response,
+        config.responseType,
+        config.transformResponse
+    );
+
+    return {
+        ...transformedResponse,
+        data: parsedBody,
+    };
 }
