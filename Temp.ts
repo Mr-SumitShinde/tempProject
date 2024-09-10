@@ -3,11 +3,11 @@ import { ValpreAPIServicesConfig } from './config';
 
 describe('httpAdapter', () => {
     beforeEach(() => {
-        jest.spyOn(global, 'fetch');
+        global.fetch = jest.fn();
     });
 
     afterEach(() => {
-        jest.restoreAllMocks(); // Clean up mock after each test
+        jest.restoreAllMocks(); // Clean up after each test
     });
 
     it('should make a GET request and return a successful response', async () => {
