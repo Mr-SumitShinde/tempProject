@@ -1,18 +1,23 @@
 import { httpAdapter } from './httpAdapter';
-import fetchMock from 'fetch-mock';
 import { ValpreAPIServicesConfig } from './config';
 
 describe('httpAdapter', () => {
+    beforeEach(() => {
+        jest.spyOn(global, 'fetch');
+    });
+
     afterEach(() => {
-        fetchMock.restore(); // Clean up mock after each test
+        jest.restoreAllMocks(); // Clean up mock after each test
     });
 
     it('should make a GET request and return a successful response', async () => {
         // Mocking a successful GET request
-        fetchMock.get('https://mockapi.com/data', {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
             status: 200,
-            body: { message: 'Success' },
-            headers: { 'Content-Type': 'application/json' },
+            statusText: 'OK',
+            json: async () => ({ message: 'Success' }),
+            headers: new Headers({ 'Content-Type': 'application/json' }),
         });
 
         const config: ValpreAPIServicesConfig = {
@@ -25,17 +30,19 @@ describe('httpAdapter', () => {
         const jsonResponse = await response.json();
 
         // Assertions
-        expect(fetchMock.calls().length).toBe(1); // Ensure fetch was called once
+        expect(global.fetch).toHaveBeenCalledTimes(1); // Ensure fetch was called once
         expect(response.status).toBe(200); // Status should be 200
         expect(jsonResponse).toEqual({ message: 'Success' }); // Body should be as expected
     });
 
     it('should handle a non-JSON response (plain text)', async () => {
         // Mocking a plain text response
-        fetchMock.get('https://mockapi.com/text', {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
             status: 200,
-            body: 'Plain text response',
-            headers: { 'Content-Type': 'text/plain' },
+            statusText: 'OK',
+            text: async () => 'Plain text response',
+            headers: new Headers({ 'Content-Type': 'text/plain' }),
         });
 
         const config: ValpreAPIServicesConfig = {
@@ -48,17 +55,19 @@ describe('httpAdapter', () => {
         const textResponse = await response.text();
 
         // Assertions
-        expect(fetchMock.calls().length).toBe(1);
+        expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(response.status).toBe(200);
         expect(textResponse).toBe('Plain text response');
     });
 
-    it('should handle POST requests with JSON body', async () => {
+    it('should handle POST requests with a JSON body', async () => {
         // Mocking a POST request
-        fetchMock.post('https://mockapi.com/data', {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
             status: 201,
-            body: { id: 1, message: 'Created' },
-            headers: { 'Content-Type': 'application/json' },
+            statusText: 'Created',
+            json: async () => ({ id: 1, message: 'Created' }),
+            headers: new Headers({ 'Content-Type': 'application/json' }),
         });
 
         const config: ValpreAPIServicesConfig = {
@@ -72,7 +81,7 @@ describe('httpAdapter', () => {
         const jsonResponse = await response.json();
 
         // Assertions
-        expect(fetchMock.calls().length).toBe(1);
+        expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(response.status).toBe(201);
         expect(jsonResponse).toEqual({ id: 1, message: 'Created' });
     });
@@ -97,9 +106,7 @@ describe('httpAdapter', () => {
 
     it('should handle network errors', async () => {
         // Mocking a network error
-        fetchMock.mock('https://mockapi.com/data', {
-            throws: new Error('Network Error'),
-        });
+        (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network Error'));
 
         const config: ValpreAPIServicesConfig = {
             method: 'GET',
@@ -108,15 +115,17 @@ describe('httpAdapter', () => {
         };
 
         await expect(httpAdapter(config)).rejects.toThrow('Network Error');
-        expect(fetchMock.calls().length).toBe(1);
+        expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('should handle HTTP errors (404 Not Found)', async () => {
         // Mocking a 404 error
-        fetchMock.get('https://mockapi.com/not-found', {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: false,
             status: 404,
-            body: { message: 'Not Found' },
-            headers: { 'Content-Type': 'application/json' },
+            statusText: 'Not Found',
+            json: async () => ({ message: 'Not Found' }),
+            headers: new Headers({ 'Content-Type': 'application/json' }),
         });
 
         const config: ValpreAPIServicesConfig = {
@@ -126,6 +135,6 @@ describe('httpAdapter', () => {
         };
 
         await expect(httpAdapter(config)).rejects.toThrow('HTTP Error: 404 - Not Found');
-        expect(fetchMock.calls().length).toBe(1);
+        expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 });
