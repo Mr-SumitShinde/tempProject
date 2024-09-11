@@ -1,23 +1,21 @@
-type RequestOptions = {
+type RequestOptions<T> = {
   headers?: Record<string, string>;
-  params?: Record<string, string>;
+  body?: T;
 };
 
-function get(url: string, options?: RequestOptions): Promise<any> {
+function post<T>(url: string, options?: RequestOptions<T>): Promise<any> {
   return new Promise(async (resolve, reject) => {
     try {
-      let query = '';
-      if (options?.params) {
-        query = new URLSearchParams(options.params).toString();
-        url = `${url}?${query}`;
-      }
-
       const headers = {
         'Content-Type': 'application/json',
         ...options?.headers,
       };
 
-      const response = await fetch(url, { method: 'GET', headers });
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: options?.body ? JSON.stringify(options.body) : undefined,
+      });
 
       if (!response.ok) {
         reject(`Error: ${response.status} - ${response.statusText}`);
@@ -39,13 +37,16 @@ function get(url: string, options?: RequestOptions): Promise<any> {
 
       resolve(data);
     } catch (error) {
-      reject(`API GET call error: ${error}`);
+      reject(`API POST call error: ${error}`);
     }
   });
 }
 
 // Example usage without async/await
-get('https://api.example.com/data')
+post('https://api.example.com/create', {
+  body: { name: 'John Doe' },
+  headers: { Authorization: 'Bearer token' },
+})
   .then((response) => {
     console.log('Response:', response);
   })
