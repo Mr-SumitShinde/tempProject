@@ -1,17 +1,15 @@
-async function get(url: string, options?: RequestOptions): Promise<any> {
+async function post(url: string, options?: RequestOptions<any>): Promise<any> {
   try {
-    let query = '';
-    if (options?.params) {
-      query = new URLSearchParams(options.params).toString();
-      url = `${url}?${query}`;
-    }
-
     const headers = {
       'Content-Type': 'application/json',
       ...options?.headers,
     };
 
-    const response = await fetch(url, { method: 'GET', headers });
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: options?.body ? JSON.stringify(options.body) : undefined,
+    });
 
     if (!response.ok) {
       throw new Error(`Error: ${response.status} - ${response.statusText}`);
@@ -32,7 +30,7 @@ async function get(url: string, options?: RequestOptions): Promise<any> {
 
     return data;
   } catch (error) {
-    console.error('API GET call error:', error);
+    console.error('API POST call error:', error);
     throw error;
   }
 }
