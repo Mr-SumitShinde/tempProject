@@ -1,20 +1,17 @@
-type RequestOptions<T> = {
-  headers?: Record<string, string>;
-  body?: T;
-};
-
-async function post<T, R>(url: string, options?: RequestOptions<T>): Promise<R> {
+async function get(url: string, options?: RequestOptions): Promise<any> {
   try {
+    let query = '';
+    if (options?.params) {
+      query = new URLSearchParams(options.params).toString();
+      url = `${url}?${query}`;
+    }
+
     const headers = {
       'Content-Type': 'application/json',
       ...options?.headers,
     };
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: options?.body ? JSON.stringify(options.body) : undefined,
-    });
+    const response = await fetch(url, { method: 'GET', headers });
 
     if (!response.ok) {
       throw new Error(`Error: ${response.status} - ${response.statusText}`);
@@ -22,34 +19,20 @@ async function post<T, R>(url: string, options?: RequestOptions<T>): Promise<R> 
 
     const contentType = response.headers.get('Content-Type');
 
-    let data: R;
-
+    let data: any;
     if (contentType?.includes('application/json')) {
       data = await response.json();
     } else if (contentType?.includes('text/plain')) {
-      data = (await response.text()) as unknown as R;
+      data = await response.text();
     } else if (contentType?.includes('application/octet-stream')) {
-      data = (await response.blob()) as unknown as R;
+      data = await response.blob();
     } else {
-      data = (await response.text()) as unknown as R;
+      data = await response.text();
     }
 
     return data;
   } catch (error) {
-    console.error('API POST call error:', error);
+    console.error('API GET call error:', error);
     throw error;
   }
 }
-
-// Example usage
-(async () => {
-  try {
-    const postResponse = await post<{ name: string }, { id: number }>('https://api.example.com/data', {
-      body: { name: 'John' },
-      headers: { Authorization: 'Bearer token' },
-    });
-    console.log(postResponse);
-  } catch (error) {
-    console.error('Error posting data:', error);
-  }
-})();
