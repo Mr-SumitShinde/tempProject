@@ -1,40 +1,50 @@
 type RequestOptions = {
   headers?: Record<string, string>;
-  body?: Record<string, any> | FormData;
+  params?: Record<string, string>;
 };
 
-async function post<T>(url: string, options?: RequestOptions): Promise<T> {
+async function get<T>(url: string, options?: RequestOptions): Promise<T> {
   try {
-    // Set headers if provided, defaults to JSON unless FormData is passed
-    const headers = options?.body instanceof FormData
-      ? {}
-      : {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        };
+    // Build query params if provided
+    let query = '';
+    if (options?.params) {
+      query = new URLSearchParams(options.params).toString();
+      url = `${url}?${query}`;
+    }
 
-    // Stringify the body if it is not FormData
-    const body = options?.body instanceof FormData
-      ? options.body
-      : JSON.stringify(options?.body || {});
+    // Set headers if provided
+    const headers = {
+      'Content-Type': 'application/json', // Default Content-Type
+      ...options?.headers,
+    };
 
-    // Make the API POST call
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body,
-    });
+    // Make the API GET call
+    const response = await fetch(url, { method: 'GET', headers });
 
     // Check if the response is OK
     if (!response.ok) {
       throw new Error(`Error: ${response.status} - ${response.statusText}`);
     }
 
-    // Parse the response body
-    const data: T = await response.json();
+    // Determine the content type of the response
+    const contentType = response.headers.get('Content-Type');
+
+    let data: T;
+
+    // Parse the response based on the content type
+    if (contentType?.includes('application/json')) {
+      data = await response.json(); // Parse as JSON
+    } else if (contentType?.includes('text/plain')) {
+      data = (await response.text()) as unknown as T; // Parse as plain text
+    } else if (contentType?.includes('application/octet-stream')) {
+      data = (await response.blob()) as unknown as T; // Parse as Blob
+    } else {
+      data = (await response.text()) as unknown as T; // Fallback to text
+    }
+
     return data;
   } catch (error) {
-    console.error('API POST call error:', error);
+    console.error('API GET call error:', error);
     throw error;
   }
 }
@@ -42,12 +52,18 @@ async function post<T>(url: string, options?: RequestOptions): Promise<T> {
 // Example usage
 (async () => {
   try {
-    const response = await post<{ success: boolean }>('https://api.example.com/data', {
-      body: { name: 'John', age: 30 },
+    const jsonResponse = await get<{ name: string }>('https://api.example.com/data', {
+      params: { id: '123' },
       headers: { Authorization: 'Bearer token' },
     });
-    console.log(response);
+    console.log('JSON response:', jsonResponse);
+
+    const textResponse = await get<string>('https://api.example.com/text');
+    console.log('Text response:', textResponse);
+
+    const blobResponse = await get<Blob>('https://api.example.com/file');
+    console.log('Blob response:', blobResponse);
   } catch (error) {
-    console.error('Error posting data:', error);
+    console.error('Error fetching data:', error);
   }
 })();
