@@ -1,58 +1,120 @@
-// Import the request function
-import { request } from './path-to-your-request-function';
+test('should handle network error during fetch', async () => {
+  (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network Error'));
 
-// Mock the global fetch function
-global.fetch = jest.fn();
+  await expect(
+    request('GET', 'https://api.example.com/resource')
+  ).rejects.toEqual('API GET call error: Network Error');
 
-describe('request function', () => {
-  
-  beforeAll(() => {
-    // Refine the FormData mock to fully support expected behaviors
-    global.FormData = class {
-      private data: Map<string, any> = new Map();
-      append(key: string, value: any) {
-        this.data.set(key, value);
-      }
-      get(key: string) {
-        return this.data.get(key);
-      }
-    } as unknown as typeof FormData;
+  expect(fetch).toHaveBeenCalledWith('https://api.example.com/resource', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: undefined,
+  });
+});
 
-    // Mock Blob
-    global.Blob = class {
-      private content: any;
-      constructor(content: any) {
-        this.content = content;
-      }
-    } as unknown as typeof Blob;
+
+test('should handle unknown content-type response', async () => {
+  (fetch as jest.Mock).mockResolvedValueOnce({
+    ok: true,
+    text: jest.fn().mockResolvedValueOnce('<html></html>'),
+    headers: {
+      get: jest.fn().mockReturnValue('text/html'),
+    },
   });
 
-  beforeEach(() => {
-    (fetch as jest.Mock).mockClear(); // Clear mocks before each test
+  const response = await request('GET', 'https://api.example.com/html-response');
+
+  expect(fetch).toHaveBeenCalledWith('https://api.example.com/html-response', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: undefined,
   });
 
-  test('should handle a PUT request with FormData', async () => {
-    const formData = new FormData();
-    formData.append('file', new Blob(['test'], { type: 'text/plain' }));
+  expect(response).toBe('<html></html>');
+});
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      text: jest.fn().mockResolvedValueOnce('File uploaded'),
-      headers: {
-        get: jest.fn().mockReturnValue('text/plain'),
-      },
-    });
+test('should handle an application/xml response', async () => {
+  const mockXMLResponse = `<note><to>Tove</to><from>Jani</from><heading>Reminder</heading><body>Don't forget me this weekend!</body></note>`;
 
-    const response = await request('PUT', 'https://api.example.com/upload', {
-      body: formData,
-    });
-
-    expect(fetch).toHaveBeenCalledWith('https://api.example.com/upload', {
-      method: 'PUT',
-      headers: {}, // No Content-Type for FormData
-      body: formData,
-    });
-
-    expect(response).toEqual('File uploaded');
+  (fetch as jest.Mock).mockResolvedValueOnce({
+    ok: true,
+    text: jest.fn().mockResolvedValueOnce(mockXMLResponse),
+    headers: {
+      get: jest.fn().mockReturnValue('application/xml'),
+    },
   });
+
+  const response = await request('GET', 'https://api.example.com/xml');
+
+  expect(fetch).toHaveBeenCalledWith('https://api.example.com/xml', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: undefined,
+  });
+
+  expect(response).toBe(mockXMLResponse);
+});
+
+
+test('should handle a POST request with no body', async () => {
+  (fetch as jest.Mock).mockResolvedValueOnce({
+    ok: true,
+    json: jest.fn().mockResolvedValueOnce({ success: true }),
+    headers: {
+      get: jest.fn().mockReturnValue('application/json'),
+    },
+  });
+
+  const response = await request('POST', 'https://api.example.com/resource', {
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  expect(fetch).toHaveBeenCalledWith('https://api.example.com/resource', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: undefined,
+  });
+
+  expect(response).toEqual({ success: true });
+});
+
+test('should reject for non-2xx HTTP status codes', async () => {
+  (fetch as jest.Mock).mockResolvedValueOnce({
+    ok: false,
+    status: 500,
+    statusText: 'Internal Server Error',
+  });
+
+  await expect(
+    request('GET', 'https://api.example.com/error')
+  ).rejects.toEqual('Error: 500 - Internal Server Error');
+
+  expect(fetch).toHaveBeenCalledWith('https://api.example.com/error', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: undefined,
+  });
+});
+
+
+test('should handle application/octet-stream response as Blob', async () => {
+  const mockBlob = new Blob(['binary data']);
+
+  (fetch as jest.Mock).mockResolvedValueOnce({
+    ok: true,
+    blob: jest.fn().mockResolvedValueOnce(mockBlob),
+    headers: {
+      get: jest.fn().mockReturnValue('application/octet-stream'),
+    },
+  });
+
+  const response = await request('GET', 'https://api.example.com/file');
+
+  expect(fetch).toHaveBeenCalledWith('https://api.example.com/file', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: undefined,
+  });
+
+  expect(response).toBe(mockBlob);
 });
