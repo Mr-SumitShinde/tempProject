@@ -6,6 +6,27 @@ global.fetch = jest.fn();
 
 describe('request function', () => {
   
+  beforeAll(() => {
+    // Mock FormData
+    global.FormData = class {
+      private data: { [key: string]: any } = {};
+      append(key: string, value: any) {
+        this.data[key] = value;
+      }
+      getMockData() {
+        return this.data;
+      }
+    } as unknown as typeof FormData;
+
+    // Mock Blob
+    global.Blob = class {
+      private content: any;
+      constructor(content: any) {
+        this.content = content;
+      }
+    } as unknown as typeof Blob;
+  });
+
   beforeEach(() => {
     (fetch as jest.Mock).mockClear(); // Clear mocks before each test
   });
