@@ -1,65 +1,54 @@
 type RequestOptions = {
   headers?: Record<string, string>;
-  body?: any;
+  params?: Record<string, string>;
 };
 
-async function post(url: string, options?: RequestOptions): Promise<any> {
-  try {
-    // If the body is FormData, don't set the Content-Type header (browser will handle it)
-    const headers = {
-      ...options?.headers,
-      ...(options?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), // Default Content-Type
-    };
+function get(url: string, options?: RequestOptions): Promise<any> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let query = '';
+      if (options?.params) {
+        query = new URLSearchParams(options.params).toString();
+        url = `${url}?${query}`;
+      }
 
-    let body;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      };
 
-    // Handle different body types based on Content-Type
-    if (headers['Content-Type'] === 'application/json') {
-      body = JSON.stringify(options?.body); // Stringify for JSON
-    } else if (headers['Content-Type'] === 'application/x-www-form-urlencoded') {
-      const urlEncodedBody = new URLSearchParams();
-      Object.keys(options?.body || {}).forEach(key => {
-        urlEncodedBody.append(key, options?.body[key]);
-      });
-      body = urlEncodedBody.toString(); // URL-encoded body
-    } else if (options?.body instanceof FormData) {
-      body = options?.body; // FormData is sent as-is
-      // No need to manually set Content-Type, the browser will do it
-    } else if (headers['Content-Type'] === 'text/plain') {
-      body = options?.body; // Plain text body
-    } else if (headers['Content-Type'] === 'application/octet-stream') {
-      body = options?.body; // Binary data body
-    } else {
-      body = options?.body; // Custom or other types of data
+      const response = await fetch(url, { method: 'GET', headers });
+
+      if (!response.ok) {
+        reject(`Error: ${response.status} - ${response.statusText}`);
+        return;
+      }
+
+      const contentType = response.headers.get('Content-Type');
+      let data: any;
+
+      if (contentType?.includes('application/json')) {
+        data = await response.json();
+      } else if (contentType?.includes('text/plain')) {
+        data = await response.text();
+      } else if (contentType?.includes('application/octet-stream')) {
+        data = await response.blob();
+      } else {
+        data = await response.text();
+      }
+
+      resolve(data);
+    } catch (error) {
+      reject(`API GET call error: ${error}`);
     }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status} - ${response.statusText}`);
-    }
-
-    const contentType = response.headers.get('Content-Type');
-
-    let data;
-
-    if (contentType?.includes('application/json')) {
-      data = await response.json();
-    } else if (contentType?.includes('text/plain')) {
-      data = await response.text();
-    } else if (contentType?.includes('application/octet-stream')) {
-      data = await response.blob();
-    } else {
-      data = await response.text();
-    }
-
-    return data;
-  } catch (error) {
-    console.error('API POST call error:', error);
-    throw error;
-  }
+  });
 }
+
+// Example usage without async/await
+get('https://api.example.com/data')
+  .then((response) => {
+    console.log('Response:', response);
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+  });
