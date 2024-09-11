@@ -3,7 +3,6 @@ type RequestOptions<T> = {
   body?: T;
 };
 
-// Generic request function (already implemented)
 function request<T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'GET', url: string, options?: RequestOptions<T>): Promise<any> {
   return new Promise(async (resolve, reject) => {
     try {
@@ -27,7 +26,7 @@ function request<T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'GET', url: st
       const response = await fetch(url, {
         method: method,
         headers: headers['Content-Type'] === 'multipart/form-data' ? {} : headers,
-        body: method !== 'GET' ? bodyContent : undefined,
+        body: method !== 'GET' && method !== 'DELETE' ? bodyContent : undefined,
       });
 
       if (!response.ok) {
@@ -53,29 +52,4 @@ function request<T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'GET', url: st
       reject(`API ${method} call error: ${error}`);
     }
   });
-}
-
-// Wrapper function for GET
-function get<T>(url: string, options?: RequestOptions<T>): Promise<any> {
-  return request('GET', url, options);
-}
-
-// Wrapper function for POST
-function post<T>(url: string, options?: RequestOptions<T>): Promise<any> {
-  return request('POST', url, options);
-}
-
-// Wrapper function for PUT
-function put<T>(url: string, options?: RequestOptions<T>): Promise<any> {
-  return request('PUT', url, options);
-}
-
-// Wrapper function for PATCH
-function patch<T>(url: string, options?: RequestOptions<T>): Promise<any> {
-  return request('PATCH', url, options);
-}
-
-// Wrapper function for DELETE
-function del<T>(url: string, options?: RequestOptions<T>): Promise<any> {
-  return request('DELETE', url, options);
 }
