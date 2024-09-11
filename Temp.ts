@@ -1,55 +1,164 @@
-type RequestOptions<T> = {
-  headers?: Record<string, string>;
-  body?: T;
-};
+// Import the request function
+import { request } from './path-to-your-request-function';
 
-function request<T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'GET', url: string, options?: RequestOptions<T>): Promise<any> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      };
+// Mock the global fetch function
+global.fetch = jest.fn();
 
-      const bodyContent = (() => {
-        if (headers['Content-Type'] === 'application/json') {
-          return JSON.stringify(options?.body);
-        } else if (headers['Content-Type'] === 'text/plain' || headers['Content-Type'] === 'application/xml') {
-          return options?.body; // Handle as plain text or XML string
-        } else if (options?.body instanceof FormData || options?.body instanceof Blob) {
-          return options.body; // FormData and Blob don't need stringifying
-        } else {
-          return options?.body;
-        }
-      })();
-
-      const response = await fetch(url, {
-        method: method,
-        headers: headers['Content-Type'] === 'multipart/form-data' ? {} : headers,
-        body: method !== 'GET' && method !== 'DELETE' ? bodyContent : undefined,
-      });
-
-      if (!response.ok) {
-        reject(`Error: ${response.status} - ${response.statusText}`);
-        return;
-      }
-
-      const contentType = response.headers.get('Content-Type');
-      let data: any;
-
-      if (contentType?.includes('application/json')) {
-        data = await response.json();
-      } else if (contentType?.includes('text/plain')) {
-        data = await response.text();
-      } else if (contentType?.includes('application/octet-stream')) {
-        data = await response.blob();
-      } else {
-        data = await response.text();
-      }
-
-      resolve(data);
-    } catch (error) {
-      reject(`API ${method} call error: ${error}`);
-    }
+describe('request function', () => {
+  
+  beforeEach(() => {
+    (fetch as jest.Mock).mockClear(); // Clear mocks before each test
   });
-}
+
+  test('should perform a POST request with JSON payload', async () => {
+    const mockResponse = { id: 1, name: 'John Doe' };
+    
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValueOnce(mockResponse),
+      headers: {
+        get: jest.fn().mockReturnValue('application/json')
+      },
+    });
+
+    const response = await request('POST', 'https://api.example.com/resource', {
+      body: { name: 'John Doe' },
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    expect(fetch).toHaveBeenCalledWith('https://api.example.com/resource', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'John Doe' }),
+    });
+
+    expect(response).toEqual(mockResponse);
+  });
+
+  test('should handle a GET request without a body', async () => {
+    const mockResponse = { name: 'John Doe' };
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValueOnce(mockResponse),
+      headers: {
+        get: jest.fn().mockReturnValue('application/json'),
+      },
+    });
+
+    const response = await request('GET', 'https://api.example.com/resource');
+
+    expect(fetch).toHaveBeenCalledWith('https://api.example.com/resource', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: undefined,
+    });
+
+    expect(response).toEqual(mockResponse);
+  });
+
+  test('should handle an error response', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+    });
+
+    await expect(
+      request('GET', 'https://api.example.com/non-existent')
+    ).rejects.toEqual('Error: 404 - Not Found');
+
+    expect(fetch).toHaveBeenCalledWith('https://api.example.com/non-existent', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: undefined,
+    });
+  });
+
+  test('should handle a PUT request with FormData', async () => {
+    const formData = new FormData();
+    formData.append('file', new Blob(['test'], { type: 'text/plain' }));
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      text: jest.fn().mockResolvedValueOnce('File uploaded'),
+      headers: {
+        get: jest.fn().mockReturnValue('text/plain'),
+      },
+    });
+
+    const response = await request('PUT', 'https://api.example.com/upload', {
+      body: formData,
+    });
+
+    expect(fetch).toHaveBeenCalledWith('https://api.example.com/upload', {
+      method: 'PUT',
+      headers: {}, // No Content-Type for FormData
+      body: formData,
+    });
+
+    expect(response).toEqual('File uploaded');
+  });
+
+  test('should handle a DELETE request', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      text: jest.fn().mockResolvedValueOnce('Resource deleted'),
+      headers: {
+        get: jest.fn().mockReturnValue('text/plain'),
+      },
+    });
+
+    const response = await request('DELETE', 'https://api.example.com/resource');
+
+    expect(fetch).toHaveBeenCalledWith('https://api.example.com/resource', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: undefined,
+    });
+
+    expect(response).toEqual('Resource deleted');
+  });
+
+  test('should handle response as Blob', async () => {
+    const mockBlob = new Blob(['test blob']);
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      blob: jest.fn().mockResolvedValueOnce(mockBlob),
+      headers: {
+        get: jest.fn().mockReturnValue('application/octet-stream'),
+      },
+    });
+
+    const response = await request('GET', 'https://api.example.com/file');
+
+    expect(fetch).toHaveBeenCalledWith('https://api.example.com/file', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: undefined,
+    });
+
+    expect(response).toBe(mockBlob);
+  });
+
+  test('should handle plain text response', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      text: jest.fn().mockResolvedValueOnce('Plain text response'),
+      headers: {
+        get: jest.fn().mockReturnValue('text/plain'),
+      },
+    });
+
+    const response = await request('GET', 'https://api.example.com/text');
+
+    expect(fetch).toHaveBeenCalledWith('https://api.example.com/text', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: undefined,
+    });
+
+    expect(response).toBe('Plain text response');
+  });
+});
