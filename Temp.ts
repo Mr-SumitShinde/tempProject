@@ -1,14 +1,41 @@
-async function post(url: string, options?: RequestOptions<any>): Promise<any> {
+type RequestOptions = {
+  headers?: Record<string, string>;
+  body?: any;
+};
+
+async function post<R>(url: string, options?: RequestOptions): Promise<R> {
   try {
     const headers = {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json', // Default Content-Type
       ...options?.headers,
     };
+
+    let body;
+
+    // Handle different body types based on Content-Type
+    if (headers['Content-Type'] === 'application/json') {
+      body = JSON.stringify(options?.body); // Stringify for JSON
+    } else if (headers['Content-Type'] === 'application/x-www-form-urlencoded') {
+      const urlEncodedBody = new URLSearchParams();
+      Object.keys(options?.body || {}).forEach(key => {
+        urlEncodedBody.append(key, options?.body[key]);
+      });
+      body = urlEncodedBody.toString(); // URL-encoded body
+    } else if (headers['Content-Type'] === 'multipart/form-data') {
+      body = options?.body; // FormData is sent as-is
+      delete headers['Content-Type']; // Let the browser set the correct boundary
+    } else if (headers['Content-Type'] === 'text/plain') {
+      body = options?.body; // Plain text body
+    } else if (headers['Content-Type'] === 'application/octet-stream') {
+      body = options?.body; // Binary data body
+    } else {
+      body = options?.body; // Custom or other types of data
+    }
 
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: options?.body ? JSON.stringify(options.body) : undefined,
+      body,
     });
 
     if (!response.ok) {
@@ -17,15 +44,16 @@ async function post(url: string, options?: RequestOptions<any>): Promise<any> {
 
     const contentType = response.headers.get('Content-Type');
 
-    let data: any;
+    let data: R;
+
     if (contentType?.includes('application/json')) {
       data = await response.json();
     } else if (contentType?.includes('text/plain')) {
-      data = await response.text();
+      data = (await response.text()) as unknown as R;
     } else if (contentType?.includes('application/octet-stream')) {
-      data = await response.blob();
+      data = (await response.blob()) as unknown as R;
     } else {
-      data = await response.text();
+      data = (await response.text()) as unknown as R;
     }
 
     return data;
