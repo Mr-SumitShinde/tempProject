@@ -14,7 +14,7 @@ function post<T>(url: string, options?: RequestOptions<T>): Promise<any> {
       const response = await fetch(url, {
         method: 'POST',
         headers,
-        body: options?.body ? JSON.stringify(options.body) : undefined,
+        body: options?.body ? (headers['Content-Type'] === 'application/json' ? JSON.stringify(options.body) : options.body) : undefined,
       });
 
       if (!response.ok) {
@@ -41,15 +41,3 @@ function post<T>(url: string, options?: RequestOptions<T>): Promise<any> {
     }
   });
 }
-
-// Example usage without async/await
-post('https://api.example.com/create', {
-  body: { name: 'John Doe' },
-  headers: { Authorization: 'Bearer token' },
-})
-  .then((response) => {
-    console.log('Response:', response);
-  })
-  .catch((error) => {
-    console.error('Error:', error);
-  });
