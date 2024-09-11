@@ -11,10 +11,22 @@ function post<T>(url: string, options?: RequestOptions<T>): Promise<any> {
         ...options?.headers,
       };
 
+      const bodyContent = (() => {
+        if (headers['Content-Type'] === 'application/json') {
+          return JSON.stringify(options?.body);
+        } else if (headers['Content-Type'] === 'text/plain' || headers['Content-Type'] === 'application/xml') {
+          return options?.body; // Handle as plain text or XML string
+        } else if (options?.body instanceof FormData || options?.body instanceof Blob) {
+          return options.body; // FormData and Blob don't need stringifying
+        } else {
+          return options?.body;
+        }
+      })();
+
       const response = await fetch(url, {
         method: 'POST',
-        headers,
-        body: options?.body ? (headers['Content-Type'] === 'application/json' ? JSON.stringify(options.body) : options.body) : undefined,
+        headers: headers['Content-Type'] === 'multipart/form-data' ? {} : headers,
+        body: bodyContent,
       });
 
       if (!response.ok) {
