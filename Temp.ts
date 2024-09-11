@@ -3,7 +3,7 @@ type RequestOptions = {
   body?: any;
 };
 
-async function post<R>(url: string, options?: RequestOptions): Promise<R> {
+async function post(url: string, options?: RequestOptions): Promise<any> {
   try {
     const headers = {
       'Content-Type': 'application/json', // Default Content-Type
@@ -44,16 +44,16 @@ async function post<R>(url: string, options?: RequestOptions): Promise<R> {
 
     const contentType = response.headers.get('Content-Type');
 
-    let data: R;
+    let data;
 
     if (contentType?.includes('application/json')) {
       data = await response.json();
     } else if (contentType?.includes('text/plain')) {
-      data = (await response.text()) as unknown as R;
+      data = await response.text();
     } else if (contentType?.includes('application/octet-stream')) {
-      data = (await response.blob()) as unknown as R;
+      data = await response.blob();
     } else {
-      data = (await response.text()) as unknown as R;
+      data = await response.text();
     }
 
     return data;
