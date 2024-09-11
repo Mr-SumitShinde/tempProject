@@ -3,7 +3,7 @@ type RequestOptions<T> = {
   body?: T;
 };
 
-function post<T>(url: string, options?: RequestOptions<T>): Promise<any> {
+function put<T>(url: string, options?: RequestOptions<T>): Promise<any> {
   return new Promise(async (resolve, reject) => {
     try {
       const headers = {
@@ -24,7 +24,7 @@ function post<T>(url: string, options?: RequestOptions<T>): Promise<any> {
       })();
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: headers['Content-Type'] === 'multipart/form-data' ? {} : headers,
         body: bodyContent,
       });
@@ -49,7 +49,7 @@ function post<T>(url: string, options?: RequestOptions<T>): Promise<any> {
 
       resolve(data);
     } catch (error) {
-      reject(`API POST call error: ${error}`);
+      reject(`API PUT call error: ${error}`);
     }
   });
 }
