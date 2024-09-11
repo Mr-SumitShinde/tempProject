@@ -1,50 +1,42 @@
-type RequestOptions = {
+type RequestOptions<T> = {
   headers?: Record<string, string>;
-  params?: Record<string, string>;
+  body?: T;
 };
 
-async function get<T>(url: string, options?: RequestOptions): Promise<T> {
+async function post<T, R>(url: string, options?: RequestOptions<T>): Promise<R> {
   try {
-    // Build query params if provided
-    let query = '';
-    if (options?.params) {
-      query = new URLSearchParams(options.params).toString();
-      url = `${url}?${query}`;
-    }
-
-    // Set headers if provided
     const headers = {
-      'Content-Type': 'application/json', // Default Content-Type
+      'Content-Type': 'application/json',
       ...options?.headers,
     };
 
-    // Make the API GET call
-    const response = await fetch(url, { method: 'GET', headers });
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: options?.body ? JSON.stringify(options.body) : undefined,
+    });
 
-    // Check if the response is OK
     if (!response.ok) {
       throw new Error(`Error: ${response.status} - ${response.statusText}`);
     }
 
-    // Determine the content type of the response
     const contentType = response.headers.get('Content-Type');
 
-    let data: T;
+    let data: R;
 
-    // Parse the response based on the content type
     if (contentType?.includes('application/json')) {
-      data = await response.json(); // Parse as JSON
+      data = await response.json();
     } else if (contentType?.includes('text/plain')) {
-      data = (await response.text()) as unknown as T; // Parse as plain text
+      data = (await response.text()) as unknown as R;
     } else if (contentType?.includes('application/octet-stream')) {
-      data = (await response.blob()) as unknown as T; // Parse as Blob
+      data = (await response.blob()) as unknown as R;
     } else {
-      data = (await response.text()) as unknown as T; // Fallback to text
+      data = (await response.text()) as unknown as R;
     }
 
     return data;
   } catch (error) {
-    console.error('API GET call error:', error);
+    console.error('API POST call error:', error);
     throw error;
   }
 }
@@ -52,18 +44,12 @@ async function get<T>(url: string, options?: RequestOptions): Promise<T> {
 // Example usage
 (async () => {
   try {
-    const jsonResponse = await get<{ name: string }>('https://api.example.com/data', {
-      params: { id: '123' },
+    const postResponse = await post<{ name: string }, { id: number }>('https://api.example.com/data', {
+      body: { name: 'John' },
       headers: { Authorization: 'Bearer token' },
     });
-    console.log('JSON response:', jsonResponse);
-
-    const textResponse = await get<string>('https://api.example.com/text');
-    console.log('Text response:', textResponse);
-
-    const blobResponse = await get<Blob>('https://api.example.com/file');
-    console.log('Blob response:', blobResponse);
+    console.log(postResponse);
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error('Error posting data:', error);
   }
 })();
