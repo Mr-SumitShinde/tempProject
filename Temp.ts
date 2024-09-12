@@ -1,44 +1,26 @@
-{
-  "questions": [
-    {
-      "id": 1,
-      "type": "radio",
-      "label": "Do you have a car?",
-      "options": ["Yes", "No"],
-      "name": "hasCar"
-    },
-    {
-      "id": 2,
-      "type": "radio",
-      "label": "Do you own a house?",
-      "options": ["Yes", "No"],
-      "name": "hasHouse"
-    },
-    {
-      "id": 3,
-      "type": "text",
-      "label": "What is your car model?",
-      "name": "carModel",
-      "conditions": {
-        "logic": "AND",
-        "dependencies": [
-          { "dependsOn": "hasCar", "value": "Yes" },
-          { "dependsOn": "hasHouse", "value": "Yes" }
-        ]
-      }
-    },
-    {
-      "id": 4,
-      "type": "text",
-      "label": "How many houses do you own?",
-      "name": "numHouses",
-      "conditions": {
-        "logic": "OR",
-        "dependencies": [
-          { "dependsOn": "hasCar", "value": "No" },
-          { "dependsOn": "hasHouse", "value": "Yes" }
-        ]
-      }
-    }
-  ]
-}
+const checkConditions = (conditions, formState) => {
+  if (!conditions) return true; // No conditions means always render
+
+  const { logic, dependencies } = conditions;
+  const results = dependencies.map(dep => formState[dep.dependsOn] === dep.value);
+
+  if (logic === "AND") {
+    return results.every(result => result); // All must be true
+  } else if (logic === "OR") {
+    return results.some(result => result); // At least one must be true
+  }
+  return false; // Default to not rendering if logic is undefined
+};
+
+const renderQuestion = (question) => {
+  const shouldRender = checkConditions(question.conditions, formState);
+  if (!shouldRender) return null;
+
+  // Render question normally here (radio, text input, etc.)
+};
+
+return (
+  <>
+    {questions.map((question) => renderQuestion(question))}
+  </>
+);
