@@ -7,17 +7,16 @@ interface VisibleIf {
 }
 
 const useFormWatch = (
-  visibleIf: VisibleIf[] | undefined,  // visibleIf can now be undefined
+  visibleIf: VisibleIf[] | undefined,
   name: string,
   formElementOptions: any
 ) => {
-  const { register, watch, unregister } = useFormContext<FieldValues>();
+  const { register, watch, unregister, setValue } = useFormContext<FieldValues>();
 
   // Handle undefined visibleIf
   if (!visibleIf || visibleIf.length === 0) {
-    // If visibleIf is undefined or empty, always return true (field is visible)
     useEffect(() => {
-      unregister(name); // Unregister the field since it's visible by default
+      unregister(name);
     }, [unregister, name]);
 
     return true;
@@ -41,11 +40,13 @@ const useFormWatch = (
 
   useEffect(() => {
     if (isVisible) {
-      unregister(name); // Unregister the field if it is visible
+      unregister(name);
     } else {
-      register(name, formElementOptions); // Register the field if it is not visible
+      register(name, formElementOptions);
+      // Clear the value when the field becomes invisible
+      setValue(name, undefined);
     }
-  }, [register, unregister, isVisible, name, formElementOptions]);
+  }, [register, unregister, isVisible, name, formElementOptions, setValue]);
 
   return isVisible;
 };
