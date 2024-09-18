@@ -17,10 +17,8 @@ const useFormWatch = (
   if (!visibleIf || visibleIf.length === 0) {
     // If visibleIf is undefined or empty, always return true (field is visible)
     useEffect(() => {
-      if (register) {
-        unregister(name);
-      }
-    }, [register, unregister]);
+      unregister(name); // Unregister the field since it's visible by default
+    }, [unregister, name]);
 
     return true;
   }
@@ -28,7 +26,7 @@ const useFormWatch = (
   const watchFields = visibleIf.map(item => item.key);
   const watchValues = visibleIf.map(item => item.value);
 
-  const watchedValues = watchFields.length > 0 ? watch(watchFields) : [];
+  const watchedValues = watch(watchFields);
   let isVisible = true;
 
   if (watchFields.length && watchValues.length) {
@@ -42,14 +40,12 @@ const useFormWatch = (
   }
 
   useEffect(() => {
-    if (register) {
-      if (isVisible) {
-        unregister(name);
-      } else {
-        register(name, formElementOptions);
-      }
+    if (isVisible) {
+      unregister(name); // Unregister the field if it is visible
+    } else {
+      register(name, formElementOptions); // Register the field if it is not visible
     }
-  }, [register, unregister, isVisible]);
+  }, [register, unregister, isVisible, name, formElementOptions]);
 
   return isVisible;
 };
