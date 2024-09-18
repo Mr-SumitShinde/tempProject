@@ -13,7 +13,6 @@ const useFormWatch = (
 ) => {
   const { register, watch, unregister, setValue } = useFormContext<FieldValues>();
 
-  // Handle undefined visibleIf
   if (!visibleIf || visibleIf.length === 0) {
     useEffect(() => {
       unregister(name);
@@ -32,6 +31,13 @@ const useFormWatch = (
     isVisible = watchFields.every((field, index) => {
       const expectedValue = watchValues[index];
       const fieldValue = watchedValues[index];
+
+      // Check if the value is a Set
+      if (fieldValue instanceof Set) {
+        return fieldValue.has(expectedValue);
+      }
+
+      // If not a Set, handle arrays or single values
       return Array.isArray(fieldValue)
         ? fieldValue.includes(expectedValue)
         : fieldValue === expectedValue;
@@ -43,8 +49,7 @@ const useFormWatch = (
       unregister(name);
     } else {
       register(name, formElementOptions);
-      // Clear the value when the field becomes invisible
-      setValue(name, undefined);
+      setValue(name, undefined); // Clear the value when the field becomes invisible
     }
   }, [register, unregister, isVisible, name, formElementOptions, setValue]);
 
