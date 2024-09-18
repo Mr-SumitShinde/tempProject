@@ -1,21 +1,32 @@
 import { useEffect } from 'react';
 import { useFormContext, FieldValues } from 'react-hook-form';
 
-// Define the type for visibleIf items
 interface VisibleIf {
-  key: string;  // The field to watch
-  value: string | number | boolean | string[];  // Expected value(s)
+  key: string;
+  value: string | number | boolean | string[];
 }
 
-// Define the type for the hook's props
 const useFormWatch = (
-  visibleIf: VisibleIf[],  // Array of VisibleIf objects
-  name: string,           // Field name
-  formElementOptions: any // Form element options
+  visibleIf: VisibleIf[] | undefined,  // visibleIf can now be undefined
+  name: string,
+  formElementOptions: any
 ) => {
   const { register, watch, unregister } = useFormContext<FieldValues>();
-  const watchFields = visibleIf.map(item => item.key);  // Extract keys
-  const watchValues = visibleIf.map(item => item.value);  // Extract values
+
+  // Handle undefined visibleIf
+  if (!visibleIf || visibleIf.length === 0) {
+    // If visibleIf is undefined or empty, always return true (field is visible)
+    useEffect(() => {
+      if (register) {
+        unregister(name);
+      }
+    }, [register, unregister]);
+
+    return true;
+  }
+
+  const watchFields = visibleIf.map(item => item.key);
+  const watchValues = visibleIf.map(item => item.value);
 
   const watchedValues = watchFields.length > 0 ? watch(watchFields) : [];
   let isVisible = true;
