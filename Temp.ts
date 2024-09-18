@@ -1,84 +1,39 @@
-import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect } from 'react';
+import { useFormContext } from 'react-hook-form';
 
-const FormWithConditionalRendering = ({ formConfig }) => {
-  const { register, handleSubmit, watch } = useForm();
-  const formValues = watch(); // Watch all form values
+const useFormWatch = (
+  visibleIf = [], // Array of objects with key-value pairs
+  name,
+  formElementOptions
+) => {
+  const { register, watch, unregister } = useFormContext();
+  const watchFields = visibleIf.map(item => item.key); // Extract keys
+  const watchValues = visibleIf.map(item => item.value); // Extract values
 
-  // Function to determine if a question should be visible
-  const shouldRender = (question) => {
-    if (!question.visibleIf) return true; // Always render if no visibility condition
+  const watchedValues = watchFields.length > 0 ? watch(watchFields) : [];
+  let isVisible = true;
 
-    return question.visibleIf.every((condition) => {
-      const field = Object.keys(condition)[0];
-      const expectedValue = condition[field];
-
-      return formValues[field] === expectedValue || 
-             (Array.isArray(formValues[field]) && formValues[field].includes(expectedValue));
+  if (watchFields.length && watchValues.length) {
+    isVisible = watchFields.every((field, index) => {
+      const expectedValue = watchValues[index];
+      const fieldValue = watchedValues[index];
+      return Array.isArray(fieldValue)
+        ? fieldValue.includes(expectedValue)
+        : fieldValue === expectedValue;
     });
-  };
+  }
 
-  const onSubmit = (data) => {
-    console.log(data);
-  };
+  useEffect(() => {
+    if (register) {
+      if (isVisible) {
+        unregister(name);
+      } else {
+        register(name, formElementOptions);
+      }
+    }
+  }, [register, unregister, isVisible]);
 
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      {formConfig.map((question) => {
-        if (shouldRender(question)) {
-          switch (question.type) {
-            case 'radio':
-              return (
-                <div key={question.name}>
-                  <label>{question.name}</label>
-                  {question.options.map((option) => (
-                    <label key={option}>
-                      <input
-                        type="radio"
-                        {...register(question.name)}
-                        value={option}
-                      />
-                      {option}
-                    </label>
-                  ))}
-                </div>
-              );
-            case 'checkbox':
-              return (
-                <div key={question.name}>
-                  <label>{question.name}</label>
-                  {question.options.map((option) => (
-                    <label key={option}>
-                      <input
-                        type="checkbox"
-                        {...register(question.name)}
-                        value={option}
-                      />
-                      {option}
-                    </label>
-                  ))}
-                </div>
-              );
-            case 'input':
-              return (
-                <div key={question.name}>
-                  <label>{question.name}</label>
-                  <input
-                    type="text"
-                    {...register(question.name)}
-                  />
-                </div>
-              );
-            default:
-              return null;
-          }
-        }
-        return null; // Don't render if the conditions are not met
-      })}
-
-      <button type="submit">Submit</button>
-    </form>
-  );
+  return isVisible;
 };
 
-export default FormWithConditionalRendering;
+export { useFormWatch };
