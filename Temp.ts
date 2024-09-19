@@ -8,3 +8,7 @@ npx create-nx-workspace clm-ui-demo \
   --linter=eslint \
   --e2eTestRunner=none \
   --framework=react
+
+
+
+https://github.com/nrwl/nx/blob/master/docs%2Fgenerated%2Fcli%2Fcreate-nx-workspace.md
