@@ -35,8 +35,6 @@ const useFormWatch = (
     }
 
     const { key, value } = condition;
-    if (!key) return false;  // Ensure the key is defined
-
     const fieldValue = watchedValues[watchFields.indexOf(key)];
 
     if (fieldValue instanceof Set) {
@@ -55,7 +53,7 @@ const useFormWatch = (
     if (condition.or) {
       return condition.or.flatMap(subCondition => collectWatchFields(subCondition));
     }
-    return condition.key ? [condition.key] : [];  // Return only defined keys
+    return [condition.key!];
   }
 
   useEffect(() => {
@@ -63,7 +61,11 @@ const useFormWatch = (
       unregister(name);
     } else {
       register(name, formElementOptions);
-      setValue(name, null);
+      if (formElementOptions.type === 'checkbox') {
+        setValue(name, []); // Explicitly clear checkboxes
+      } else {
+        setValue(name, null); // Clear other input types
+      }
     }
   }, [register, unregister, isVisible, name, formElementOptions, setValue]);
 
