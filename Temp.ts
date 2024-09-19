@@ -35,6 +35,8 @@ const useFormWatch = (
     }
 
     const { key, value } = condition;
+    if (!key) return false;  // Ensure the key is defined
+
     const fieldValue = watchedValues[watchFields.indexOf(key)];
 
     if (fieldValue instanceof Set) {
@@ -53,7 +55,7 @@ const useFormWatch = (
     if (condition.or) {
       return condition.or.flatMap(subCondition => collectWatchFields(subCondition));
     }
-    return [condition.key!];
+    return condition.key ? [condition.key] : [];  // Return only defined keys
   }
 
   useEffect(() => {
