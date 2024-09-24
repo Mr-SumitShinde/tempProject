@@ -1,82 +1,74 @@
-import React, { useRef, useState } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import { ColDef, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 
-interface DataTableProps {
-  columnDefs: ColDef[];                   // Column definitions
-  fetchRows: (request: any) => Promise<{ rows: any[]; totalRowCount: number }>; // Server-side data fetching function
-  cacheBlockSize?: number;                // Number of rows per block
-  maxBlocksInCache?: number;              // Max number of cached blocks
-  pagination?: boolean;                   // Enable/disable pagination (optional)
-  pageSize?: number;                      // Page size when pagination is enabled
-  loadingComponent?: JSX.Element;         // Custom loading indicator component
-  onError?: (error: Error) => void;       // Custom error handling
-  [key: string]: any;                     // Any additional grid props
-}
+// Create a mock dataset to simulate database
+const mockData = Array.from({ length: 1000 }, (_, i) => ({
+  id: i + 1,
+  name: `Person ${i + 1}`,
+  age: Math.floor(Math.random() * 80) + 1,
+  country: ['USA', 'India', 'Germany', 'Australia'][Math.floor(Math.random() * 4)],
+}));
 
-const DataTable: React.FC<DataTableProps> = ({
-  columnDefs,
-  fetchRows,
-  cacheBlockSize = 100,
-  maxBlocksInCache = 10,
-  pagination = false,
-  pageSize = 100,
-  loadingComponent,
-  onError,
-  ...gridProps
-}) => {
-  const gridRef = useRef<AgGridReact>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+// Initialize Express app
+const app = express();
+const PORT = 4000;
 
-  const onGridReady = (params: any) => {
-    const dataSource: IServerSideDatasource = {
-      getRows: async (params: IServerSideGetRowsParams) => {
-        setLoading(true);
-        setError(null);
+app.use(cors()); // Enable CORS for cross-origin requests
+app.use(bodyParser.json()); // Parse JSON requests
 
-        try {
-          const data = await fetchRows(params.request);
-          params.success({
-            rowData: data.rows,          // Update to use success method
-            rowCount: data.totalRowCount,
-          });
-        } catch (err) {
-          const fetchError = err as Error;
-          params.fail();                  // Update to use fail method
+// Helper function to sort data
+const sortData = (data, sortModel) => {
+  if (!sortModel || sortModel.length === 0) return data;
 
-          // Trigger custom error handler
-          setError(fetchError);
-          if (onError) onError(fetchError);
-        } finally {
-          setLoading(false);
-        }
-      },
-    };
+  const sortedData = [...data];
+  const sort = sortModel[0]; // Simplifying to support single-column sorting
+  const { colId, sort: sortOrder } = sort;
 
-    params.api.setServerSideDatasource(dataSource);
-  };
+  sortedData.sort((a, b) => {
+    if (a[colId] < b[colId]) return sortOrder === 'asc' ? -1 : 1;
+    if (a[colId] > b[colId]) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
 
-  return (
-    <div className="ag-theme-alpine" style={{ height: '100%', width: '100%' }}>
-      {loading && loadingComponent ? loadingComponent : null}
-      {error && <div className="error-message">An error occurred: {error.message}</div>}
-
-      <AgGridReact
-        ref={gridRef}
-        columnDefs={columnDefs}
-        rowModelType="serverSide"
-        cacheBlockSize={cacheBlockSize}
-        maxBlocksInCache={maxBlocksInCache}
-        pagination={pagination}
-        paginationPageSize={pageSize}
-        onGridReady={onGridReady}
-        {...gridProps}
-      />
-    </div>
-  );
+  return sortedData;
 };
 
-export default DataTable;
+// Helper function to filter data
+const filterData = (data, filterModel) => {
+  if (!filterModel || Object.keys(filterModel).length === 0) return data;
+
+  let filteredData = [...data];
+
+  Object.keys(filterModel).forEach((field) => {
+    const filter = filterModel[field];
+    filteredData = filteredData.filter((item) => {
+      const value = item[field].toString().toLowerCase();
+      const filterValue = filter.filter.toLowerCase();
+      return value.includes(filterValue);
+    });
+  });
+
+  return filteredData;
+};
+
+// POST endpoint to fetch data with server-side pagination, sorting, and filtering
+app.post('/api/get-rows', (req, res) => {
+  const { startRow, endRow, sortModel, filterModel } = req.body;
+
+  // Apply filtering and sorting on mock data
+  let filteredData = filterData(mockData, filterModel);
+  filteredData = sortData(filteredData, sortModel);
+
+  // Slice data for pagination
+  const rows = filteredData.slice(startRow, endRow);
+  const totalRowCount = filteredData.length;
+
+  // Send response
+  res.json({ rows, totalRowCount });
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
