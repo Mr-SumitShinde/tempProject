@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors'); // Import the cors package
 
 const mockData = Array.from({ length: 1000 }, (_, i) => ({
   id: i + 1,
@@ -10,6 +11,7 @@ const mockData = Array.from({ length: 1000 }, (_, i) => ({
 const app = express();
 const PORT = 4000;
 
+app.use(cors()); // Enable CORS for all requests
 app.use(express.json());
 
 const sortData = (data, sortModel) => {
