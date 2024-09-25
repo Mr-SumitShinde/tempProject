@@ -1,15 +1,42 @@
-app.get('/api/get-rows', (req, res) => {
-  const { startRow, endRow, sortModel, filterModel } = req.query;
+const express = require('express');
+const fs = require('fs');
+const app = express();
+const port = 3000;
 
-  // Parse the incoming JSON string for sortModel and filterModel
-  const parsedSortModel = sortModel ? JSON.parse(sortModel) : [];
-  const parsedFilterModel = filterModel ? JSON.parse(filterModel) : {};
+// Load the JSON file into memory (mock database)
+let mockData = JSON.parse(fs.readFileSync('data.json', 'utf8'));
 
-  let filteredData = filterData(mockData, parsedFilterModel);
-  filteredData = sortData(filteredData, parsedSortModel);
+app.get('/api/data', (req, res) => {
+  const { startRow, endRow, sort_by = 'id', order = 'asc', filters } = req.query;
+  let filteredData = [...mockData];
+  
+  // Apply filtering
+  const parsedFilters = JSON.parse(filters || '{}');
+  Object.keys(parsedFilters).forEach(field => {
+    filteredData = filteredData.filter(item => item[field] === parsedFilters[field]);
+  });
 
-  const rows = filteredData.slice(Number(startRow), Number(endRow));
-  const totalRowCount = filteredData.length;
+  // Apply sorting
+  filteredData.sort((a, b) => {
+    const fieldA = a[sort_by];
+    const fieldB = b[sort_by];
+    if (order === 'asc') {
+      return fieldA > fieldB ? 1 : -1;
+    } else {
+      return fieldA < fieldB ? 1 : -1;
+    }
+  });
 
-  res.json({ rows, totalRowCount }); // Ensure totalRowCount is returned correctly
+  // Apply pagination
+  const paginatedData = filteredData.slice(parseInt(startRow), parseInt(endRow));
+
+  // Send the paginated, sorted, and filtered data
+  res.json({
+    rows: paginatedData,
+    totalRows: filteredData.length
+  });
+});
+
+app.listen(port, () => {
+  console.log(`Mock server running at http://localhost:${port}`);
 });
