@@ -1,20 +1,26 @@
 #!/usr/bin/env node
 
-const [appName, sonarProjectKey] = process.argv.slice(2);
+const readline = require('readline');
 
-function createApp(appName, sonarProjectKey) {
-  if (!appName) {
-    console.error("Error: 'appName' is required.");
-    process.exit(1);
-  }
-  
-  console.log(`Creating app with the name: ${appName}`);
-  
-  if (sonarProjectKey) {
-    console.log(`Sonar Project Key: ${sonarProjectKey}`);
-  } else {
-    console.log("No Sonar Project Key provided, using default or skipping...");
-  }
-}
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-createApp(appName, sonarProjectKey);
+rl.question('Enter appName: ', (appName) => {
+  rl.question('Enter sonarProjectKey (optional): ', (sonarProjectKey) => {
+    
+    function createApp(appName, sonarProjectKey) {
+      console.log(`Creating app with the name: ${appName}`);
+      
+      if (sonarProjectKey) {
+        console.log(`Sonar Project Key: ${sonarProjectKey}`);
+      } else {
+        console.log("No Sonar Project Key provided, using default or skipping...");
+      }
+    }
+    
+    createApp(appName, sonarProjectKey);
+    rl.close();
+  });
+});
