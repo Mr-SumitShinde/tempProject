@@ -1,26 +1,51 @@
-#!/usr/bin/env node
+import React, { useMemo } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-const readline = require('readline');
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-rl.question('Enter appName: ', (appName) => {
-  rl.question('Enter sonarProjectKey (optional): ', (sonarProjectKey) => {
-    
-    function createApp(appName, sonarProjectKey) {
-      console.log(`Creating app with the name: ${appName}`);
+const MyDataTable = () => {
+  const gridOptions = useMemo(() => ({
+    rowModelType: 'serverSide',
+    pagination: true,
+    cacheBlockSize: 100,
+    serverSideDatasource: (params) => {
+      const request = params.request;
+      const { startRow, endRow, sortModel, filterModel } = request;
       
-      if (sonarProjectKey) {
-        console.log(`Sonar Project Key: ${sonarProjectKey}`);
-      } else {
-        console.log("No Sonar Project Key provided, using default or skipping...");
-      }
+      // Extract sorting and filtering info
+      const sortField = sortModel[0]?.colId || 'id';
+      const sortDirection = sortModel[0]?.sort || 'asc';
+
+      const filters = {};
+      Object.keys(filterModel).forEach(field => {
+        filters[field] = filterModel[field].filter;
+      });
+
+      // Send request to mock API (JSON-based)
+      fetch(`/api/data?startRow=${startRow}&endRow=${endRow}&sort_by=${sortField}&order=${sortDirection}&filters=${JSON.stringify(filters)}`)
+        .then(response => response.json())
+        .then(data => {
+          params.successCallback(data.rows, data.totalRows);
+        })
+        .catch(error => {
+          params.failCallback();
+        });
     }
-    
-    createApp(appName, sonarProjectKey);
-    rl.close();
-  });
-});
+  }), []);
+
+  return (
+    <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
+      <AgGridReact
+        gridOptions={gridOptions}
+        columnDefs={[
+          { field: 'id', sortable: true, filter: true },
+          { field: 'name', sortable: true, filter: true },
+          { field: 'category', sortable: true, filter: true },
+          { field: 'price', sortable: true, filter: true }
+        ]}
+      />
+    </div>
+  );
+};
+
+export default MyDataTable;
