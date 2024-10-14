@@ -1,11 +1,26 @@
-Subject: Resume of [Candidate Name] for Developer Position
+# Required metadata
+sonar.projectKey=your_project_key
+sonar.organization=your_organization_key
+sonar.projectName=Your Project Name
+sonar.projectVersion=1.0
 
-Hi [Lead's Name],
+# Path to your source code
+sonar.sources=apps,your-libraries-folder
 
-I hope you're doing well. I am sharing the resume of [Candidate Name], who is interested in the open developer position on our team. [He/She/They] has [briefly mention relevant skills/experience].
+# Language settings (assuming you are using TypeScript)
+sonar.language=ts
+sonar.typescript.tsconfigPath=tsconfig.base.json
 
-Please review the attached resume and let me know your thoughts.
+# Exclude certain files if needed (optional)
+sonar.exclusions=**/node_modules/**, **/dist/**
 
-Best regards,
-[Your Name]
+# Specify test directories (optional, if you want to track test coverage)
+sonar.tests=apps,your-libraries-folder
+sonar.test.inclusions=**/*.spec.ts,**/*.test.ts
 
+# Include coverage reports (optional, if you are using Jest with coverage)
+sonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+# Optional settings for code analysis in monorepo setups
+sonar.projectBaseDir=.
+sonar.sourceEncoding=UTF-8
