@@ -1,18 +1,21 @@
-import { useEffect } from 'react';
-
-const MyComponent = () => {
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://your-cdn-link.css'; // Replace with your CDN URL
-    document.head.appendChild(link);
-
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
-  return <div>My React Component</div>;
-};
-
-export default MyComponent;
+{
+  "name": "valpre-react-data-table",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/web:package",
+      "options": {
+        "outputPath": "dist/libs/valpre-react-data-table",
+        "tsConfig": "libs/valpre-react-data-table/tsconfig.lib.json",
+        "project": "libs/valpre-react-data-table/package.json",
+        "entryFile": "libs/valpre-react-data-table/src/index.ts",
+        "assets": [
+          {
+            "input": "libs/valpre-react-data-table/src",
+            "glob": "**/*.css",
+            "output": "."
+          }
+        ]
+      }
+    }
+  }
+}
