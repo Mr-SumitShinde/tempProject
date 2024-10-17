@@ -1,12 +1,28 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  build: {
+    lib: {
+      entry: path.resolve(__dirname, 'src/index.ts'), // Entry point of your library
+      name: 'ValpreReactDataTable',
+      formats: ['es', 'umd'], // Ensure compatibility with different module formats
+      fileName: (format) => `valpre-react-data-table.${format}.js`,
+    },
+    rollupOptions: {
+      external: ['react', 'react-dom'], // Mark external dependencies to avoid bundling them
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+        },
+      },
+    },
+  },
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@import "src/styles/variables.scss";`
+        additionalData: `@import "./src/styles/valpre-grid-theme-barclays.scss";`, // Adjust paths accordingly
       },
     },
   },
