@@ -57,3 +57,56 @@ const ValpreReactDataTable: React.FC = () => {
 };
 
 export default ValpreReactDataTable;
+
+
+import React from 'react';
+import { AgGridReact } from '@ag-grid-community/react';
+import { AllModules } from '@ag-grid-community/all-modules';
+import { ColDef, GridReadyEvent, Module } from '@ag-grid-community/core';
+import { Badge } from "@blueprintjs/core";
+
+// Define the Badge Renderer component
+interface BadgeRendererProps {
+  value: string;  // The value that will be displayed inside the badge
+}
+
+const BadgeRenderer: React.FC<BadgeRendererProps> = ({ value }) => {
+  return <Badge intent="primary">{value}</Badge>;
+};
+
+const ValpreReactDataTable: React.FC = () => {
+  // Define the columns for the grid
+  const columnDefs: ColDef[] = [
+    {
+      headerName: "Status",
+      field: "status",
+      cellRendererFramework: BadgeRenderer,  // Directly use the BadgeRenderer component
+      width: 150
+    },
+    {
+      headerName: "Name",
+      field: "name",
+      // This column uses default rendering
+      width: 200
+    },
+    // More columns can be added as needed...
+  ];
+
+  const onGridReady = (params: GridReadyEvent) => {
+    // Grid is now ready
+    // Fetch data or setup further grid options here if needed
+  };
+
+  return (
+    <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+      <AgGridReact
+        columnDefs={columnDefs}
+        modules={AllModules as Module[]}
+        onGridReady={onGridReady}
+        // Other grid options can be specified here
+      />
+    </div>
+  );
+};
+
+export default ValpreReactDataTable;
