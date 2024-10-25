@@ -23,3 +23,12 @@ const frameworkComponents = {
 const handleButtonClick = (value) => {
   alert('Button clicked with value: ' + value);
 };
+
+
+import React from 'react';
+
+const ButtonRenderer = ({ value, onClick }) => {
+  return (
+    <button onClick={() => onClick(value)}>Click Me</button>
+  );
+};
