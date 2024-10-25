@@ -1,129 +1,49 @@
-Your cases
+Certainly! To dynamically adjust the appearance of the Badge in the BadgeRenderer component based on certain conditions, you can define logic within the component to determine the intent of the Badge based on the value or other data related to the cell. Blueprint supports several intents like primary, success, warning, danger, etc., which you can utilize to visually differentiate badges based on their associated data.
 
-+ Create client
+Here’s how you can modify the BadgeRenderer to apply different intents conditionally:
 
-Case Id
+Modifying the BadgeRenderer to Use Conditional Logic
 
-Client Ref Id
+import React from 'react';
+import { Badge } from "@blueprintjs/core";
 
-Case Type
+interface BadgeRendererProps {
+  value: string;  // Assuming value contains the data based on which you decide the badge color
+}
 
-Client Name
+const BadgeRenderer: React.FC<BadgeRendererProps> = ({ value }) => {
+  // Function to determine the intent based on the value
+  const getBadgeIntent = (value: string) => {
+    if (value.toLowerCase() === "completed") {
+      return "success";
+    } else if (value.toLowerCase() === "pending") {
+      return "warning";
+    } else if (value.toLowerCase() === "failed") {
+      return "danger";
+    }
+    return "none"; // Default, no particular intent
+  };
 
-Submitted by:
+  // Get the intent for the current value
+  const intent = getBadgeIntent(value);
 
-Date created
+  return <Badge intent={intent}>{value}</Badge>;
+};
 
-Status
+export default BadgeRenderer;
 
-R12345
+Explanation
 
-2038905
+1. getBadgeIntent Function: This function determines the intent of the badge based on the cell's value. It checks if the value is "completed", "pending", or "failed" and returns the corresponding intent. You can expand this logic to include more conditions or to make it more sophisticated based on your specific requirements.
 
-R12346
 
-2038819
+2. Usage of Intent: The intent calculated by getBadgeIntent is passed to the Badge component, allowing it to visually reflect the state represented by value.
 
-Identify Verification
 
-John doe
 
-Swati lal
+Integration with Ag-Grid
 
-07/22/2024
+Assuming you already have the setup from previous examples, this BadgeRenderer will now automatically show badges with different colors based on their statuses directly in your Ag-Grid component.
 
-CASE CREATED
+This approach offers a flexible way to use conditional formatting within Ag-Grid using React components, leveraging the Blueprint UI library’s capabilities to enhance the data presentation according to your application's logic.
 
-Identify Verification
-
-Shobhit jain
-
-Dewen jawale
-
-06/20/2024
-
-AWAITING INPUT
-
-R12347
-
-1017105
-
-STP
-
-Philipp hans
-
-Pinakin patel
-
-05/19/2024
-
-APPROVED
-
-R12348
-
-1015031
-
-Identify Verification
-
-Rahul guru
-
-Mukund agnihotri
-
-04/18/2024
-
-REVIEW
-
-R12349
-
-1014720
-
-FCRM
-
-Trupti kushare
-
-Anant raut
-
-03/16/2024
-
-ABANDONED
-
-R12342
-
-1013618
-
-FCRM
-
-Neha saxena
-
-Matteo gratton
-
-02/14/2024
-
-LINK EXPIRED
-
-R12343
-
-1012720
-
-STP
-
-Rohan bhatia
-
-David park
-
-02/12/2024
-
-PROCESSING
-
-R12344
-
-1011516
-
-Identify Verification
-
-Michael burrows
-
-Wendy bird
-
-01/10/2024
-
-ERROR
