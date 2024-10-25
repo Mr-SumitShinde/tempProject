@@ -22,6 +22,11 @@ import { ColDef, GridReadyEvent, Module } from '@ag-grid-community/core';
 import ButtonRenderer from './ButtonRenderer'; // Import your custom cell renderer
 
 const ValpreReactDataTable: React.FC = () => {
+  // Define handleButtonClick before using it in columnDefs
+  const handleButtonClick = (value: any) => {
+    alert('Button clicked with value: ' + value);
+  };
+
   const columnDefs: ColDef[] = [
     {
       headerName: "Button",
@@ -37,10 +42,6 @@ const ValpreReactDataTable: React.FC = () => {
 
   const frameworkComponents = {
     buttonRenderer: ButtonRenderer
-  };
-
-  const handleButtonClick = (value: any) => {
-    alert('Button clicked with value: ' + value);
   };
 
   const onGridReady = (params: GridReadyEvent) => {
