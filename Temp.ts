@@ -1,47 +1,42 @@
 import React from 'react';
+import { Badge } from "@blueprintjs/core";
 
-interface ButtonRendererProps {
-  value: any; // You might want to be more specific depending on what `value` is expected to be
-  onClick: (value: any) => void;
+interface BadgeRendererProps {
+  value: string;  // Assume the value is a string. Adjust the type based on your actual data.
 }
 
-const ButtonRenderer: React.FC<ButtonRendererProps> = ({ value, onClick }) => {
-  return (
-    <button onClick={() => onClick(value)}>
-      Click Me
-    </button>
-  );
+const BadgeRenderer: React.FC<BadgeRendererProps> = ({ value }) => {
+  return <Badge intent="primary">{value}</Badge>;
 };
 
-export default ButtonRenderer;
+export default BadgeRenderer;
 
+// Assuming you've already created BadgeRenderer.tsx
 import React from 'react';
 import { AgGridReact } from '@ag-grid-community/react';
 import { AllModules } from '@ag-grid-community/all-modules';
 import { ColDef, GridReadyEvent, Module } from '@ag-grid-community/core';
-import ButtonRenderer from './ButtonRenderer'; // Import your custom cell renderer
+import BadgeRenderer from './BadgeRenderer'; // Import your custom badge cell renderer
 
 const ValpreReactDataTable: React.FC = () => {
-  // Define handleButtonClick before using it in columnDefs
-  const handleButtonClick = (value: any) => {
-    alert('Button clicked with value: ' + value);
-  };
-
   const columnDefs: ColDef[] = [
     {
-      headerName: "Button",
-      field: "action",
-      cellRenderer: 'buttonRenderer',
-      cellRendererParams: {
-        onClick: handleButtonClick
-      },
+      headerName: "Status",
+      field: "status",
+      cellRenderer: 'badgeRenderer',  // Use the BadgeRenderer only for the "Status" column
       width: 150
     },
-    // other columns...
+    {
+      headerName: "Name",
+      field: "name",
+      // Default text renderer will be used here
+      width: 200
+    },
+    // Add other columns as needed...
   ];
 
   const frameworkComponents = {
-    buttonRenderer: ButtonRenderer
+    badgeRenderer: BadgeRenderer  // Register the BadgeRenderer component
   };
 
   const onGridReady = (params: GridReadyEvent) => {
