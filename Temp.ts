@@ -39,7 +39,7 @@ describe('ValpreReactDataTable', () => {
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
 
-    global.fetch.mockRestore();
+    (global.fetch as jest.Mock).mockRestore();
   });
 
   it('handles error and displays error message', async () => {
@@ -64,7 +64,7 @@ describe('ValpreReactDataTable', () => {
 
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
 
-    global.fetch.mockRestore();
+    (global.fetch as jest.Mock).mockRestore();
   });
 
   it('calls onGridReady with a valid data source and executes getRows', async () => {
@@ -105,7 +105,7 @@ describe('ValpreReactDataTable', () => {
       expect(screen.getByText('Mocked AgGridReact')).toBeInTheDocument();
     });
 
-    global.fetch.mockRestore();
+    (global.fetch as jest.Mock).mockRestore();
   });
 
   it('renders column definitions correctly', async () => {
