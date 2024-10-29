@@ -13,7 +13,7 @@ describe('useFormWatch', () => {
   const mockSetValue = jest.fn();
 
   beforeEach(() => {
-    (useFormContext as jest.Mock<UseFormReturn>).mockReturnValue({
+    (useFormContext as jest.Mock<Partial<UseFormReturn>>).mockReturnValue({
       watch: mockWatch,
       register: mockRegister,
       unregister: mockUnregister,
