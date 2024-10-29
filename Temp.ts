@@ -1,23 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import ValpreReactDataTable from './ValpreReactDataTable'; // Assuming this is the correct import path
+import ValpreReactDataTable from './ValpreReactDataTable';
 import '@testing-library/jest-dom/extend-expect';
-
-// Mock fetch as a Jest Mock function
-global.fetch = jest.fn() as jest.Mock;
-
-beforeEach(() => {
-  // Clear previous mocks
-  jest.resetAllMocks();
-
-  // Setup fetch to resolve by default in all tests
-  global.fetch.mockResolvedValue({
-    json: () => Promise.resolve({
-      totalRowCount: 100,
-      rows: [{ id: 1, name: 'Item 1' }]
-    })
-  });
-});
 
 describe('ValpreReactDataTable Component', () => {
   const defaultProps = {
@@ -27,6 +11,16 @@ describe('ValpreReactDataTable Component', () => {
     loadingComponent: <div>Loading...</div>
   };
 
+  beforeEach(() => {
+    (fetch as jest.Mock).mockClear();
+    (fetch as jest.Mock).mockResolvedValue({
+      json: () => Promise.resolve({
+        totalRowCount: 100,
+        rows: [{ id: 1, name: 'Item 1' }]
+      })
+    });
+  });
+
   it('renders without crashing and displays initial message', () => {
     render(<ValpreReactDataTable {...defaultProps} />);
     expect(screen.getByText('No rows to display!')).toBeInTheDocument();
@@ -34,7 +28,6 @@ describe('ValpreReactDataTable Component', () => {
 
   it('calls fetch with correct URL when the component mounts', async () => {
     render(<ValpreReactDataTable {...defaultProps} />);
-    // Wait for fetch to be called
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining(`${defaultProps.url}/api/data`));
   });
@@ -45,8 +38,7 @@ describe('ValpreReactDataTable Component', () => {
   });
 
   it('handles errors during data fetch', async () => {
-    // Override fetch to simulate an error
-    fetch.mockRejectedValueOnce(new Error('Network error'));
+    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
     render(<ValpreReactDataTable {...defaultProps} />);
     await waitFor(() => expect(defaultProps.onError).toHaveBeenCalled());
     expect(screen.getByText('An error occurred')).toBeInTheDocument();
