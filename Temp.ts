@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react-hooks';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, UseFormReturn } from 'react-hook-form';
 import { useFormWatch, VisibleIfCondition } from './useFormWatch';
 
 jest.mock('react-hook-form', () => ({
@@ -13,7 +13,7 @@ describe('useFormWatch', () => {
   const mockSetValue = jest.fn();
 
   beforeEach(() => {
-    useFormContext.mockReturnValue({
+    (useFormContext as jest.Mock<UseFormReturn>).mockReturnValue({
       watch: mockWatch,
       register: mockRegister,
       unregister: mockUnregister,
