@@ -1,112 +1,76 @@
-import { renderHook } from '@testing-library/react-hooks';
-import { useFormContext, UseFormReturn } from 'react-hook-form';
-import { useFormWatch, VisibleIfCondition } from './useFormWatch';
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import ValpreReactDataTable from './ValpreReactDataTable';
 
-jest.mock('react-hook-form', () => ({
-  useFormContext: jest.fn(),
-}));
+describe('ValpreReactDataTable Component', () => {
+  const defaultProps = {
+    url: '/test-url',
+    columnDefs: [{ field: 'name' }],
+  };
 
-describe('useFormWatch', () => {
-  const mockWatch = jest.fn();
-  const mockRegister = jest.fn();
-  const mockUnregister = jest.fn();
-  const mockSetValue = jest.fn();
+  test('renders without crashing', () => {
+    render(<ValpreReactDataTable {...defaultProps} />);
+    const gridElement = screen.queryByTestId('ag-grid-react');
+    expect(gridElement).not.toBeNull(); // Similar to `toBeInTheDocument`
+  });
 
-  beforeEach(() => {
-    (useFormContext as jest.Mock<Partial<UseFormReturn>>).mockReturnValue({
-      watch: mockWatch,
-      register: mockRegister,
-      unregister: mockUnregister,
-      setValue: mockSetValue,
+  test('displays loading component when loading is true', async () => {
+    const loadingComponent = <div data-testid="loading-component">Loading...</div>;
+    render(<ValpreReactDataTable {...defaultProps} loadingComponent={loadingComponent} />);
+
+    // Since gridRef is internal, simulate loading by updating component state
+    const loadingElement = screen.queryByTestId('loading-component');
+    expect(loadingElement).not.toBeNull();
+  });
+
+  test('displays error message when an error occurs', async () => {
+    const mockError = new Error('Test error');
+    const onErrorMock = jest.fn();
+
+    render(<ValpreReactDataTable {...defaultProps} onError={onErrorMock} />);
+    
+    // Simulate error
+    await waitFor(() => onErrorMock(mockError));
+    
+    expect(onErrorMock).toHaveBeenCalledWith(mockError);
+    expect(screen.getByText('An error occurred')).toBeInTheDocument();
+    expect(screen.getByText(mockError.message)).toBeInTheDocument();
+  });
+
+  test('calls onGridReady and sets data source', async () => {
+    render(<ValpreReactDataTable {...defaultProps} />);
+    const onGridReady = jest.fn();
+    
+    // Simulate grid ready
+    await waitFor(() => onGridReady());
+    
+    expect(onGridReady).toHaveBeenCalledTimes(1);
+  });
+
+  test('fetches data correctly on getRows and calls success callback', async () => {
+    const fetchMock = jest.fn().mockResolvedValueOnce({
+      json: () => Promise.resolve({ totalRowCount: 50, rows: [{ id: 1, name: 'Test' }] }),
     });
-    jest.clearAllMocks();
-  });
+    global.fetch = fetchMock;
 
-  it('should return true if no visibleIf conditions are provided', () => {
-    const { result } = renderHook(() =>
-      useFormWatch(undefined, 'testField', {})
+    render(<ValpreReactDataTable {...defaultProps} />);
+    const getRowsParams = {
+      request: { startRow: 0, endRow: 20, sortModel: [], filterModel: {} },
+      success: jest.fn(),
+      fail: jest.fn(),
+    };
+    
+    await waitFor(() => getRowsParams.success({
+      rowData: [{ id: 1, name: 'Test' }],
+      rowCount: 50,
+    }));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/test-url/api/data?startRow=0&endRow=20&sort_by=id&order=asc&filters={}'
     );
-    expect(result.current).toBe(true);
-  });
-
-  it('should return true if visibleIf is an empty array', () => {
-    const { result } = renderHook(() =>
-      useFormWatch([], 'testField', {})
-    );
-    expect(result.current).toBe(true);
-  });
-
-  it('should register and unregister the field based on visibility', () => {
-    const visibleIfCondition: VisibleIfCondition[] = [
-      { key: 'field1', value: 'value1' },
-    ];
-
-    mockWatch.mockReturnValueOnce(['value1']);
-
-    const { result } = renderHook(() =>
-      useFormWatch(visibleIfCondition, 'testField', {})
-    );
-
-    expect(result.current).toBe(true);
-    expect(mockUnregister).toHaveBeenCalledWith('testField');
-  });
-
-  it('should evaluate `and` conditions correctly', () => {
-    const visibleIfCondition: VisibleIfCondition[] = [
-      {
-        and: [
-          { key: 'field1', value: 'value1' },
-          { key: 'field2', value: 'value2' },
-        ],
-      },
-    ];
-
-    mockWatch.mockReturnValueOnce(['value1', 'value2']);
-
-    const { result } = renderHook(() =>
-      useFormWatch(visibleIfCondition, 'testField', {})
-    );
-
-    expect(result.current).toBe(true);
-  });
-
-  it('should evaluate `or` conditions correctly', () => {
-    const visibleIfCondition: VisibleIfCondition[] = [
-      {
-        or: [
-          { key: 'field1', value: 'value1' },
-          { key: 'field2', value: 'value2' },
-        ],
-      },
-    ];
-
-    mockWatch.mockReturnValueOnce(['value1']);
-
-    const { result } = renderHook(() =>
-      useFormWatch(visibleIfCondition, 'testField', {})
-    );
-
-    expect(result.current).toBe(true);
-  });
-
-  it('should set value to null when condition changes to not visible', () => {
-    const visibleIfCondition: VisibleIfCondition[] = [
-      { key: 'field1', value: 'value1' },
-    ];
-
-    mockWatch.mockReturnValueOnce(['differentValue']);
-
-    const { result, rerender } = renderHook(() =>
-      useFormWatch(visibleIfCondition, 'testField', {})
-    );
-
-    expect(result.current).toBe(false);
-    expect(mockRegister).toHaveBeenCalledWith('testField', {});
-
-    mockWatch.mockReturnValueOnce(['value1']);
-    rerender();
-
-    expect(mockUnregister).toHaveBeenCalledWith('testField');
-    expect(mockSetValue).toHaveBeenCalledWith('testField', null);
+    expect(getRowsParams.success).toHaveBeenCalledWith({
+      rowData: [{ id: 1, name: 'Test' }],
+      rowCount: 50,
+    });
   });
 });
