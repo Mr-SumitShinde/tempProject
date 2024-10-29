@@ -6,8 +6,12 @@ import ValpreReactDataTable from './ValpreReactDataTable';
 jest.mock('@ag-grid-community/react', () => ({
   AgGridReact: jest.fn(({ onGridReady }) => {
     if (onGridReady) {
+      // Mock an api object with setServerSideDatasource method
+      const mockApi = {
+        setServerSideDatasource: jest.fn(),
+      };
       // Simulate the onGridReady event to trigger the callback
-      onGridReady({ api: { setServerSideDatasource: jest.fn() } });
+      onGridReady({ api: mockApi });
     }
     return <div>Mocked AgGridReact</div>;
   }),
@@ -46,10 +50,10 @@ describe('ValpreReactDataTable', () => {
       />
     );
 
-    // Mock the API setServerSideDatasource function after onGridReady is called
+    // Ensure the mock api is correctly structured
     await act(async () => {
-      if (onGridReadyMock.mock.calls[0]) {
-        const api = onGridReadyMock.mock.calls[0][0].api;
+      const api = onGridReadyMock.mock.calls[0]?.[0]?.api;
+      if (api && api.setServerSideDatasource) {
         api.setServerSideDatasource({
           getRows: async (params) => {
             await params.successCallback(mockData.rows, mockData.totalRowCount);
