@@ -28,7 +28,6 @@ describe('ValpreReactDataTable', () => {
 
   it('calls onGridReady with a valid data source and executes getRows', async () => {
     const onGridReadyMock = jest.fn();
-    const setServerSideDatasourceMock = jest.fn();
     const mockData = {
       rows: [{ name: 'John Doe', age: 30 }],
       totalRowCount: 1,
@@ -37,7 +36,7 @@ describe('ValpreReactDataTable', () => {
     // Mock fetch response for getRows
     global.fetch = jest.fn().mockResolvedValue({
       json: jest.fn().mockResolvedValue(mockData),
-    });
+    }) as jest.Mock;
 
     render(
       <ValpreReactDataTable
@@ -68,6 +67,7 @@ describe('ValpreReactDataTable', () => {
       expect(screen.getByText('Mocked AgGridReact')).toBeInTheDocument();
     });
 
-    global.fetch.mockRestore();
+    // Restore fetch to original implementation
+    (global.fetch as jest.Mock).mockRestore();
   });
 });
