@@ -1,122 +1,23 @@
-import React, { useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { AgGridReact } from '@ag-grid-community/react';
-import {
-  IServerSideDatasource,
-  ColDef,
-  ModuleRegistry,
-  IServerSideGetRowsParams,
-  ColGroupDef,
-} from '@ag-grid-community/core';
-import { ServerSideRowModelModule } from 'ag-grid-enterprise';
-import '/valpre-grid-theme-barclays.scss';
+import fetchMock from 'jest-fetch-mock';
 
-interface DataTableProps {
-  url: string;
-  columnDefs: ColDef[] | ColGroupDef<any>[];
-  cacheBlockSize?: number;
-  maxBlocksInCache?: number;
-  pagination?: boolean;
-  pageSize?: number;
-  loadingComponent?: JSX.Element;
-  onError?: (error: Error) => void;
-  [key: string]: any;
-}
+fetchMock.enableMocks();
 
-const overlayNoRowsTemplate = 'No rows to display!';
 
-ModuleRegistry.registerModules([ServerSideRowModelModule as any]);
+it('displays loading component when loading', async () => {
+  const loadingComponent = <div>Loading...</div>;
 
-const ValpreReactDataTable = forwardRef<AgGridReact, DataTableProps>(({
-  url,
-  columnDefs,
-  cacheBlockSize = 100,
-  maxBlocksInCache = 10,
-  pagination = false,
-  pageSize = 100,
-  loadingComponent,
-  onError,
-  ...gridProps
-}, ref) => {
-  const gridRef = useRef<AgGridReact>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  // Mock fetch to keep it in a loading state
+  fetchMock.mockResponse(() => new Promise(() => {}));
 
-  useImperativeHandle(ref, () => gridRef.current as AgGridReact);
-
-  const containerStyle = useMemo(() => ({ width: '100%', height: '100%' }), []);
-  const gridStyle = useMemo(() => ({ height: '100%', width: '100%' }), []);
-
-  const defaultColDef = useMemo(() => ({
-    flex: 1,
-    minWidth: 100,
-  }), []);
-
-  const onGridReady = (params: any) => {
-    const dataSource: IServerSideDatasource = {
-      getRows: async (params: IServerSideGetRowsParams) => {
-        setLoading(true);
-        setError(null);
-
-        try {
-          const { startRow, endRow, sortModel, filterModel } = params.request;
-          const sortField = sortModel[0]?.colId || 'id';
-          const sortDirection = sortModel[0]?.sort || 'asc';
-          const filters: any = {};
-
-          if (filterModel != null) {
-            Object.keys(filterModel).forEach((field) => {
-              filters[field] = (filterModel as any)[field].filter;
-            });
-          }
-
-          const response = await fetch(
-            `${url}/api/data?startRow=${startRow}&endRow=${endRow}&sort_by=${sortField}&order=${sortDirection}&filters=${JSON.stringify(filters)}`
-          );
-          const data = await response.json();
-
-          const rowCount = data.totalRowCount !== undefined ? data.totalRowCount : -1;
-          params.success({ rowData: data.rows, rowCount });
-        } catch (err) {
-          const fetchError = err as Error;
-          params.fail();
-          setError(fetchError);
-          onError && onError(fetchError);
-        } finally {
-          setLoading(false);
-        }
-      },
-    };
-
-    params.api.setServerSideDatasource(dataSource);
-  };
-
-  return (
-    <div>
-      {loading && loadingComponent}
-      {error && <div className="error-message">An error occurred: {error.message}</div>}
-      <div style={containerStyle}>
-        <div style={gridStyle}>
-          <AgGridReact
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            ref={gridRef}
-            domLayout="autoHeight"
-            className="valpre-grid-theme-barclays"
-            rowModelType="serverSide"
-            overlayNoRowsTemplate={overlayNoRowsTemplate}
-            cacheBlockSize={cacheBlockSize}
-            maxBlocksInCache={maxBlocksInCache}
-            pagination={pagination}
-            paginationPageSize={pageSize}
-            suppressScrollOnNewData={true}
-            suppressColumnVirtualisation={true}
-            onGridReady={onGridReady}
-            {...gridProps}
-          />
-        </div>
-      </div>
-    </div>
+  render(
+    <ValpreReactDataTable
+      url={url}
+      columnDefs={columnDefs}
+      loadingComponent={loadingComponent}
+    />
   );
-});
 
-export default ValpreReactDataTable;
+  expect(screen.getByText('Loading...')).toBeInTheDocument();
+
+  fetchMock.mockReset(); // Clear mock
+});
