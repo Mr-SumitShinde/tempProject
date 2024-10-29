@@ -1,23 +1,27 @@
-Here’s a basic documentation guide for consuming the ValpreReactDataTable component, covering usage, props, and some examples.
+Here’s the updated documentation with the package name @barclays/valpre-react-data-table.
 
 
 ---
 
-ValpreReactDataTable Documentation
+@barclays/valpre-react-data-table Documentation
 
-The ValpreReactDataTable is a reusable data table component built using ag-Grid, designed to fetch data from a server-side endpoint. It provides customizable options for pagination, error handling, and dynamic column definitions.
+The @barclays/valpre-react-data-table is a reusable data table component built using ag-Grid, designed to fetch data from a server-side endpoint. It provides customizable options for pagination, error handling, and dynamic column definitions.
 
 Installation
 
-To use ValpreReactDataTable, import it into your project as follows:
+To use @barclays/valpre-react-data-table, install it via npm or yarn:
 
-import ValpreReactDataTable from 'path/to/ValpreReactDataTable';
-import 'path/to/valpre-grid-theme-barclays.scss'; // Import the theme style
+npm install @barclays/valpre-react-data-table
+
+or
+
+yarn add @barclays/valpre-react-data-table
 
 Basic Usage
 
 import React from 'react';
-import ValpreReactDataTable from 'path/to/ValpreReactDataTable';
+import ValpreReactDataTable from '@barclays/valpre-react-data-table';
+import '@barclays/valpre-react-data-table/valpre-grid-theme-barclays.scss';
 
 const MyComponent = () => {
   return (
@@ -104,7 +108,7 @@ Advanced Usage
 
 Column Definitions
 
-You can define the columns for ValpreReactDataTable using an array of ColDef or ColGroupDef objects, with each column definition supporting options like field, headerName, and custom properties.
+Define the columns using an array of ColDef or ColGroupDef objects. Each column definition supports options like field, headerName, and custom properties.
 
 Example:
 
@@ -121,5 +125,5 @@ Server-side sorting and filtering are supported. ValpreReactDataTable will autom
 
 ---
 
-This guide should help integrate and customize ValpreReactDataTable within your project. Let me know if you'd like additional details or examples!
+This documentation should guide you through integrating @barclays/valpre-react-data-table into your projects smoothly. Let me know if you'd like additional details or examples!
 
