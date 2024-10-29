@@ -12,18 +12,22 @@ describe('ValpreReactDataTable Component', () => {
   };
 
   beforeEach(() => {
-    (fetch as jest.Mock).mockClear();
-    (fetch as jest.Mock).mockResolvedValue({
-      json: () => Promise.resolve({
-        totalRowCount: 100,
-        rows: [{ id: 1, name: 'Item 1' }]
-      })
-    });
+    fetchMock.resetMocks();
+    fetchMock.mockResponseOnce(JSON.stringify({
+      totalRowCount: 100,
+      rows: [{ id: 1, name: 'Item 1' }]
+    }));
   });
 
-  it('renders without crashing and displays initial message', () => {
+  it('renders without crashing and displays initial message', async () => {
     render(<ValpreReactDataTable {...defaultProps} />);
+    // Verify the initial loading or no-data state
     expect(screen.getByText('No rows to display!')).toBeInTheDocument();
+
+    // Wait for the mock fetch to resolve and the component to update
+    await waitFor(() => {
+      expect(screen.getByText('Item 1')).toBeInTheDocument();
+    });
   });
 
   it('calls fetch with correct URL when the component mounts', async () => {
@@ -38,7 +42,7 @@ describe('ValpreReactDataTable Component', () => {
   });
 
   it('handles errors during data fetch', async () => {
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+    fetchMock.mockRejectOnce(new Error('Network error'));
     render(<ValpreReactDataTable {...defaultProps} />);
     await waitFor(() => expect(defaultProps.onError).toHaveBeenCalled());
     expect(screen.getByText('An error occurred')).toBeInTheDocument();
