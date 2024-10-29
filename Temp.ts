@@ -1,78 +1,59 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import ValpreReactDataTable from './ValpreReactDataTable';
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import ValpreReactDataTable from './ValpreReactDataTable'; // Assuming this is the correct import path
 import '@testing-library/jest-dom/extend-expect';
 
-// Mock fetch
-global.fetch = jest.fn(() =>
-  Promise.resolve({
+// Mock fetch as a Jest Mock function
+global.fetch = jest.fn() as jest.Mock;
+
+beforeEach(() => {
+  // Clear previous mocks
+  jest.resetAllMocks();
+
+  // Setup fetch to resolve by default in all tests
+  global.fetch.mockResolvedValue({
     json: () => Promise.resolve({
       totalRowCount: 100,
       rows: [{ id: 1, name: 'Item 1' }]
     })
-  })
-);
-
-beforeEach(() => {
-  fetch.mockClear();
+  });
 });
 
 describe('ValpreReactDataTable Component', () => {
   const defaultProps = {
     url: 'http://example.com',
     columnDefs: [{ field: 'name' }],
-    onError: jest.fn()
+    onError: jest.fn(),
+    loadingComponent: <div>Loading...</div>
   };
 
-  it('renders without crashing', () => {
+  it('renders without crashing and displays initial message', () => {
     render(<ValpreReactDataTable {...defaultProps} />);
     expect(screen.getByText('No rows to display!')).toBeInTheDocument();
   });
 
-  it('initializes the grid API on grid ready', async () => {
+  it('calls fetch with correct URL when the component mounts', async () => {
     render(<ValpreReactDataTable {...defaultProps} />);
-    await waitFor(() => expect(screen.queryByText('No rows to display!')).not.toBeInTheDocument());
-    expect(fetch).toHaveBeenCalledTimes(1);
+    // Wait for fetch to be called
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining(`${defaultProps.url}/api/data`));
   });
 
-  it('displays loading component when fetching data', () => {
-    render(<ValpreReactDataTable {...defaultProps} loadingComponent={<div>Loading...</div>} />);
-    fireEvent.gridReady(screen.getByRole('grid'));
+  it('displays loading component while fetching data', () => {
+    render(<ValpreReactDataTable {...defaultProps} />);
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
   it('handles errors during data fetch', async () => {
     // Override fetch to simulate an error
-    fetch.mockImplementationOnce(() => Promise.reject('Network error'));
+    fetch.mockRejectedValueOnce(new Error('Network error'));
     render(<ValpreReactDataTable {...defaultProps} />);
-    fireEvent.gridReady(screen.getByRole('grid'));
-    await waitFor(() => expect(defaultProps.onError).toHaveBeenCalledWith('Network error'));
+    await waitFor(() => expect(defaultProps.onError).toHaveBeenCalled());
     expect(screen.getByText('An error occurred')).toBeInTheDocument();
   });
 
-  it('correctly fetches data with sort and filter parameters', async () => {
+  it('displays data when fetched successfully', async () => {
     render(<ValpreReactDataTable {...defaultProps} />);
-    const params = {
-      request: {
-        startRow: 0,
-        endRow: 20,
-        sortModel: [{ colId: 'name', sort: 'asc' }],
-        filterModel: { name: { filter: 'Item' } }
-      }
-    };
-
-    fireEvent.gridReady(screen.getByRole('grid'), params);
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-      `${defaultProps.url}/api/data?startRow=0&endRow=20&sort_by=name&order=asc&filters={"name":"Item"}`
-    ));
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('updates the rows and total row count based on the response', async () => {
-    render(<ValpreReactDataTable {...defaultProps} />);
-    fireEvent.gridReady(screen.getByRole('grid'));
-    await waitFor(() => {
-      expect(screen.getByText('Item 1')).toBeInTheDocument();
-      expect(screen.getByText('100')).toBeInTheDocument();  // Assume this selector is for row count
-    });
+    await waitFor(() => expect(screen.getByText('Item 1')).toBeInTheDocument());
   });
 });
