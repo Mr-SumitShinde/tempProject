@@ -1,9 +1,3 @@
-The warning you’re seeing is due to the ref passed to a function component (AgGridReact), which does not support refs directly unless it's wrapped with React.forwardRef. To address this, we need to modify ValpreReactDataTable to use React.forwardRef when creating the ref for AgGridReact.
-
-Here's how to adjust ValpreReactDataTable to use React.forwardRef:
-
-Step 1: Modify the Component with React.forwardRef
-
 import React, { useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { AgGridReact } from '@ag-grid-community/react';
 import {
@@ -126,15 +120,3 @@ const ValpreReactDataTable = forwardRef<AgGridReact, DataTableProps>(({
 });
 
 export default ValpreReactDataTable;
-
-Explanation
-
-React.forwardRef: Wraps ValpreReactDataTable so it can accept a ref from a parent component.
-
-useImperativeHandle: Exposes gridRef as the component's ref, allowing parent components to access AgGridReact methods through ValpreReactDataTable.
-
-
-Usage in Tests
-
-No changes are required in the tests to use the forwardRef version of the component. This change should remove the ref-related warning, as now ValpreReactDataTable is wrapped with forwardRef and allows gridRef to be used without warnings.
-
