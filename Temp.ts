@@ -1,49 +1,84 @@
-Certainly! To dynamically adjust the appearance of the Badge in the BadgeRenderer component based on certain conditions, you can define logic within the component to determine the intent of the Badge based on the value or other data related to the cell. Blueprint supports several intents like primary, success, warning, danger, etc., which you can utilize to visually differentiate badges based on their associated data.
-
-Here’s how you can modify the BadgeRenderer to apply different intents conditionally:
-
-Modifying the BadgeRenderer to Use Conditional Logic
-
 import React from 'react';
-import { Badge } from "@blueprintjs/core";
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import ValpreReactDataTable from './ValpreReactDataTable'; // Adjust the import path as needed
+import { AgGridReact } from '@ag-grid-community/react';
 
-interface BadgeRendererProps {
-  value: string;  // Assuming value contains the data based on which you decide the badge color
-}
+// Mock AgGridReact to avoid actual rendering in tests
+jest.mock('@ag-grid-community/react', () => ({
+  AgGridReact: jest.fn(() => <div data-testid="ag-grid-react"></div>)
+}));
 
-const BadgeRenderer: React.FC<BadgeRendererProps> = ({ value }) => {
-  // Function to determine the intent based on the value
-  const getBadgeIntent = (value: string) => {
-    if (value.toLowerCase() === "completed") {
-      return "success";
-    } else if (value.toLowerCase() === "pending") {
-      return "warning";
-    } else if (value.toLowerCase() === "failed") {
-      return "danger";
-    }
-    return "none"; // Default, no particular intent
+describe('ValpreReactDataTable Component', () => {
+  const defaultProps = {
+    url: '/test-url',
+    columnDefs: [{ field: 'name' }],
   };
 
-  // Get the intent for the current value
-  const intent = getBadgeIntent(value);
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  return <Badge intent={intent}>{value}</Badge>;
-};
+  test('renders without crashing', () => {
+    render(<ValpreReactDataTable {...defaultProps} />);
+    expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
+  });
 
-export default BadgeRenderer;
+  test('displays loading component when loading is true', () => {
+    const loadingComponent = <div data-testid="loading-component">Loading...</div>;
+    render(<ValpreReactDataTable {...defaultProps} loadingComponent={loadingComponent} />);
+    
+    // Mock loading state
+    fireEvent(gridRef.current!.api, 'setLoading', true);
+    
+    expect(screen.getByTestId('loading-component')).toBeInTheDocument();
+  });
 
-Explanation
+  test('displays error message when an error occurs', async () => {
+    const mockError = new Error('Test error');
+    const onErrorMock = jest.fn();
 
-1. getBadgeIntent Function: This function determines the intent of the badge based on the cell's value. It checks if the value is "completed", "pending", or "failed" and returns the corresponding intent. You can expand this logic to include more conditions or to make it more sophisticated based on your specific requirements.
+    render(<ValpreReactDataTable {...defaultProps} onError={onErrorMock} />);
+    
+    // Trigger error in data fetching
+    fireEvent(gridRef.current!.api, 'setError', mockError);
+    
+    expect(onErrorMock).toHaveBeenCalledWith(mockError);
+    expect(screen.getByText('An error occurred')).toBeInTheDocument();
+    expect(screen.getByText(mockError.message)).toBeInTheDocument();
+  });
 
+  test('calls onGridReady and sets data source', async () => {
+    render(<ValpreReactDataTable {...defaultProps} />);
+    const onGridReady = jest.fn();
+    
+    fireEvent(gridRef.current!.api, 'onGridReady', onGridReady);
+    
+    expect(onGridReady).toHaveBeenCalledTimes(1);
+    expect(gridRef.current!.api.getServerSideDatasource()).toBeDefined();
+  });
 
-2. Usage of Intent: The intent calculated by getBadgeIntent is passed to the Badge component, allowing it to visually reflect the state represented by value.
+  test('fetches data correctly on getRows and calls success callback', async () => {
+    const fetchMock = jest.fn().mockResolvedValueOnce({
+      json: () => Promise.resolve({ totalRowCount: 50, rows: [{ id: 1, name: 'Test' }] }),
+    });
+    global.fetch = fetchMock;
 
+    render(<ValpreReactDataTable {...defaultProps} />);
+    const getRowsParams = {
+      request: { startRow: 0, endRow: 20, sortModel: [], filterModel: {} },
+      success: jest.fn(),
+      fail: jest.fn(),
+    };
+    
+    await waitFor(() => getRows(getRowsParams));
 
-
-Integration with Ag-Grid
-
-Assuming you already have the setup from previous examples, this BadgeRenderer will now automatically show badges with different colors based on their statuses directly in your Ag-Grid component.
-
-This approach offers a flexible way to use conditional formatting within Ag-Grid using React components, leveraging the Blueprint UI library’s capabilities to enhance the data presentation according to your application's logic.
-
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/test-url/api/data?startRow=0&endRow=20&sort_by=id&order=asc&filters={}'
+    );
+    expect(getRowsParams.success).toHaveBeenCalledWith({
+      rowData: [{ id: 1, name: 'Test' }],
+      rowCount: 50,
+    });
+  });
+});
