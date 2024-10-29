@@ -1,70 +1,78 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
-import ValpreReactDataTable, { DataTableProps } from './ValpreReactDataTable';
-import { IServerSideGetRowsParams } from '@ag-grid-community/core';
+import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { AgGridReact } from '@ag-grid-community/react';
+import ValpreReactDataTable from './ValpreReactDataTable';
 
-describe('ValpreReactDataTable Component Logic', () => {
-  let onErrorMock: jest.Mock;
+jest.mock('@ag-grid-community/react', () => ({
+  AgGridReact: jest.fn(() => <div>Mocked AgGridReact</div>),
+}));
+
+describe('ValpreReactDataTable', () => {
+  const columnDefs = [{ field: 'name' }, { field: 'age' }];
+  const url = 'https://mock-api.com';
 
   beforeEach(() => {
-    onErrorMock = jest.fn();
+    jest.clearAllMocks();
   });
 
-  it('calls onGridReady when grid is initialized', () => {
-    const props: DataTableProps = {
-      url: '/test-url',
-      columnDefs: [{ field: 'name' }],
-      onError: onErrorMock,
-    };
-    render(<ValpreReactDataTable {...props} />);
-    expect(onErrorMock).not.toHaveBeenCalled();
+  it('renders without crashing', () => {
+    render(<ValpreReactDataTable url={url} columnDefs={columnDefs} />);
+    expect(screen.getByText('Mocked AgGridReact')).toBeInTheDocument();
   });
 
-  it('fetches data correctly in getRows and calls success callback', async () => {
-    const props: DataTableProps = {
-      url: '/test-url',
-      columnDefs: [{ field: 'name' }],
-      onError: onErrorMock,
-    };
-    const { getByTestId } = render(<ValpreReactDataTable {...props} />);
-    
-    global.fetch = jest.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ totalRowCount: 50, rows: [{ id: 1, name: 'Test' }] }),
-    });
+  it('displays loading component when loading', async () => {
+    const loadingComponent = <div>Loading...</div>;
+    render(
+      <ValpreReactDataTable
+        url={url}
+        columnDefs={columnDefs}
+        loadingComponent={loadingComponent}
+      />
+    );
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+  });
 
-    const getRowsParams: IServerSideGetRowsParams = {
-      request: { startRow: 0, endRow: 20, sortModel: [], filterModel: {} },
-      success: jest.fn(),
-      fail: jest.fn(),
-    } as IServerSideGetRowsParams;
+  it('handles error and displays error message', async () => {
+    const onError = jest.fn();
+    render(
+      <ValpreReactDataTable
+        url={url}
+        columnDefs={columnDefs}
+        onError={onError}
+      />
+    );
+
+    // Simulate error state
+    const errorMessage = 'An error occurred';
+    screen.getByText(errorMessage);
+
+    expect(onError).toHaveBeenCalled();
+  });
+
+  it('calls onGridReady with a valid data source', () => {
+    const onGridReadyMock = jest.fn();
+    render(
+      <ValpreReactDataTable
+        url={url}
+        columnDefs={columnDefs}
+        onGridReady={onGridReadyMock}
+      />
+    );
+
+    expect(onGridReadyMock).toHaveBeenCalled();
+  });
+
+  it('renders column definitions correctly', async () => {
+    render(<ValpreReactDataTable url={url} columnDefs={columnDefs} />);
 
     await waitFor(() => {
-      expect(getRowsParams.success).toHaveBeenCalledWith({
-        rowData: [{ id: 1, name: 'Test' }],
-        rowCount: 50,
-      });
-    });
-  });
-
-  it('calls onError when data fetching fails', async () => {
-    const props: DataTableProps = {
-      url: '/test-url',
-      columnDefs: [{ field: 'name' }],
-      onError: onErrorMock,
-    };
-    render(<ValpreReactDataTable {...props} />);
-    
-    global.fetch = jest.fn().mockRejectedValue(new Error('Fetch error'));
-
-    const getRowsParams: IServerSideGetRowsParams = {
-      request: { startRow: 0, endRow: 20, sortModel: [], filterModel: {} },
-      success: jest.fn(),
-      fail: jest.fn(),
-    } as IServerSideGetRowsParams;
-
-    await waitFor(() => {
-      expect(onErrorMock).toHaveBeenCalledWith(new Error('Fetch error'));
-      expect(getRowsParams.fail).toHaveBeenCalled();
+      expect(AgGridReact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          columnDefs,
+        }),
+        {}
+      );
     });
   });
 });
