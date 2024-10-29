@@ -1,15 +1,15 @@
-Here’s the updated documentation with the package name @barclays/valpre-react-data-table.
+Here’s a more detailed documentation guide for consuming the @barclays/valpre-react-data-table package. This will provide a comprehensive overview of installation, props, and usage scenarios, as well as example configurations for common use cases.
 
 
 ---
 
 @barclays/valpre-react-data-table Documentation
 
-The @barclays/valpre-react-data-table is a reusable data table component built using ag-Grid, designed to fetch data from a server-side endpoint. It provides customizable options for pagination, error handling, and dynamic column definitions.
+The @barclays/valpre-react-data-table is a React-based data table component built on ag-Grid for advanced server-side rendering. It provides a configurable and customizable grid with support for server-side data fetching, pagination, sorting, and filtering, optimized for enterprise use.
 
 Installation
 
-To use @barclays/valpre-react-data-table, install it via npm or yarn:
+Install the package via npm or yarn:
 
 npm install @barclays/valpre-react-data-table
 
@@ -17,13 +17,16 @@ or
 
 yarn add @barclays/valpre-react-data-table
 
+Ensure you also import the custom Barclays theme stylesheet for consistent styling:
+
+import '@barclays/valpre-react-data-table/dist/valpre-grid-theme-barclays.css';
+
 Basic Usage
 
 import React from 'react';
 import ValpreReactDataTable from '@barclays/valpre-react-data-table';
-import '@barclays/valpre-react-data-table/valpre-grid-theme-barclays.scss';
 
-const MyComponent = () => {
+const App = () => {
   return (
     <ValpreReactDataTable
       url="https://api.example.com/data"
@@ -41,89 +44,163 @@ const MyComponent = () => {
   );
 };
 
-export default MyComponent;
+export default App;
 
 Props
 
 Required Props
 
 url: string
-The base URL for the API endpoint from which data will be fetched.
+Base URL of the API endpoint for data fetching. This URL should return JSON data formatted for server-side processing with startRow, endRow, and other query parameters.
 
 columnDefs: ColDef[] | ColGroupDef<any>[]
-Defines the columns for the data table. Supports both simple and grouped column definitions.
+Array of column definitions for the grid. Supports both simple and grouped columns to define the structure and configuration of each column.
 
 
 Optional Props
 
 cacheBlockSize: number (default: 100)
-Controls the number of rows requested per server-side block.
+Defines the number of rows fetched in each request block. Used for server-side pagination and affects performance based on data volume.
 
 maxBlocksInCache: number (default: 10)
-Determines the maximum number of data blocks retained in the cache.
+Specifies the maximum number of blocks to cache. Useful for controlling memory usage in large data sets.
 
 pagination: boolean (default: false)
-Enables or disables pagination.
+Enables or disables client-side pagination.
 
 pageSize: number (default: 100)
-Sets the number of rows displayed per page when pagination is enabled.
+Sets the number of rows displayed per page if pagination is enabled.
 
 loadingComponent: JSX.Element
-Custom loading component shown when data is being fetched.
+Custom component displayed when data is loading, useful for showing spinners or progress indicators.
 
 onError: (error: Error) => void
-Callback function for handling errors during data fetching.
+Callback function triggered when an error occurs during data fetching. Allows custom error handling logic.
+
+overlayNoRowsTemplate: string
+Template string displayed when no rows are available. Defaults to 'No rows to display!'.
 
 
-Other Props
+Additional Props
 
-Additional props can be passed and will be spread onto the root AgGridReact component.
+Other props passed to ValpreReactDataTable will be spread onto the root AgGridReact component. This allows for more advanced customization through ag-Grid’s standard API.
 
-Example Configurations
+Data Handling
 
-Simple Table with Default Pagination
+The component uses server-side row model fetching. Requests sent to the url include parameters like:
+
+startRow and endRow for pagination,
+
+sort_by and order for sorting, and
+
+filters for custom filters in JSON format.
+
+
+The endpoint should respond with a JSON object containing:
+
+rows: an array of rows for the requested page,
+
+totalRowCount: total number of rows in the dataset, if available.
+
+
+Examples
+
+Basic Table with Pagination
 
 <ValpreReactDataTable
   url="https://api.example.com/data"
   columnDefs={[
-    { field: 'id', headerName: 'ID' },
-    { field: 'status', headerName: 'Status' },
-  ]}
-  pagination={true}
-/>
-
-Table with Custom Loading and Error Handling
-
-<ValpreReactDataTable
-  url="https://api.example.com/data"
-  columnDefs={[
-    { field: 'product', headerName: 'Product' },
+    { field: 'productName', headerName: 'Product Name' },
     { field: 'price', headerName: 'Price' },
   ]}
-  loadingComponent={<div>Loading data...</div>}
-  onError={(error) => alert('Error loading data: ' + error.message)}
+  pagination={true}
+  pageSize={20}
 />
 
-Advanced Usage
+Custom Loading and Error Handling
+
+<ValpreReactDataTable
+  url="https://api.example.com/data"
+  columnDefs={[
+    { field: 'username', headerName: 'Username' },
+    { field: 'email', headerName: 'Email' },
+  ]}
+  loadingComponent={<div>Loading, please wait...</div>}
+  onError={(error) => {
+    console.error('Error fetching data:', error);
+    alert('Failed to load data.');
+  }}
+/>
+
+Advanced Usage with Server-Side Sorting and Filtering
+
+Server-side sorting and filtering are automatically handled by ValpreReactDataTable through ag-Grid. Sorting and filtering settings from the UI are passed as query parameters to the server-side endpoint.
+
+<ValpreReactDataTable
+  url="https://api.example.com/advanced-data"
+  columnDefs={[
+    { field: 'id', headerName: 'ID', sortable: true },
+    { field: 'status', headerName: 'Status', filter: 'agTextColumnFilter' },
+    { field: 'lastUpdated', headerName: 'Last Updated', sortable: true },
+  ]}
+  cacheBlockSize={50}
+  maxBlocksInCache={5}
+/>
 
 Column Definitions
 
-Define the columns using an array of ColDef or ColGroupDef objects. Each column definition supports options like field, headerName, and custom properties.
+Define columns by specifying an array of ColDef or ColGroupDef objects. Each column can include properties such as:
+
+field: Field name from the data source.
+
+headerName: Display name for the column.
+
+sortable: Allows sorting on this column.
+
+filter: Specifies filter type (e.g., 'agTextColumnFilter', 'agNumberColumnFilter').
+
+resizable: Allows resizing the column.
+
 
 Example:
 
 const columnDefs = [
-  { field: 'firstName', headerName: 'First Name', sortable: true },
-  { field: 'lastName', headerName: 'Last Name', filter: 'agTextColumnFilter' },
-  { field: 'email', headerName: 'Email', resizable: true },
+  { field: 'name', headerName: 'Name', sortable: true },
+  { field: 'age', headerName: 'Age', filter: 'agNumberColumnFilter' },
+  { field: 'location', headerName: 'Location', resizable: true },
 ];
 
-Server-Side Sorting and Filtering
+Tips for Optimal Performance
 
-Server-side sorting and filtering are supported. ValpreReactDataTable will automatically pass the sortModel and filterModel in the API requests, allowing for dynamic sorting and filtering from the server.
+1. Cache Size: Adjust cacheBlockSize and maxBlocksInCache based on data size and frequency of user navigation to optimize performance.
+
+
+2. Custom Loading: Use a simple and lightweight loading component to improve perceived performance.
+
+
+3. Error Handling: Customize onError to gracefully handle and log API issues.
+
+
+4. Column Optimization: Enable only necessary features (e.g., sorting, filtering) to improve rendering speed.
+
+
+
+FAQ
+
+How does ValpreReactDataTable handle pagination?
+
+Pagination can be enabled by setting pagination={true}. This will display a page with a set number of rows, controlled by the pageSize prop.
+
+What happens if data fetching fails?
+
+If an error occurs during data fetching, ValpreReactDataTable will trigger the onError callback with the error object. Additionally, a default error message will be displayed if no custom error handling is provided.
+
+How do I customize the appearance of the data table?
+
+To apply a custom theme, import the valpre-grid-theme-barclays.css style file or customize ag-Grid themes directly using CSS.
 
 
 ---
 
-This documentation should guide you through integrating @barclays/valpre-react-data-table into your projects smoothly. Let me know if you'd like additional details or examples!
+This documentation provides a structured overview for using @barclays/valpre-react-data-table. Let me know if you need any further details or additional examples!
 
