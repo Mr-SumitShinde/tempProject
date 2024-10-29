@@ -1,57 +1,78 @@
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ValpreReactDataTable from './ValpreReactDataTable';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/extend-expect';
 
-// Define fetch as a jest.Mock to use jest's mocking capabilities
-global.fetch = jest.fn() as jest.Mock;
-
-beforeEach(() => {
-  // Clear previous mocks and set a resolved value for all tests
-  global.fetch.mockClear();
-  global.fetch.mockResolvedValue({
+// Mock fetch
+global.fetch = jest.fn(() =>
+  Promise.resolve({
     json: () => Promise.resolve({
       totalRowCount: 100,
       rows: [{ id: 1, name: 'Item 1' }]
     })
-  });
+  })
+);
+
+beforeEach(() => {
+  fetch.mockClear();
 });
 
 describe('ValpreReactDataTable Component', () => {
   const defaultProps = {
     url: 'http://example.com',
     columnDefs: [{ field: 'name' }],
-    onError: jest.fn(),
-    loadingComponent: <div>Loading...</div>
+    onError: jest.fn()
   };
 
-  it('renders without crashing and displays initial message', () => {
+  it('renders without crashing', () => {
     render(<ValpreReactDataTable {...defaultProps} />);
     expect(screen.getByText('No rows to display!')).toBeInTheDocument();
   });
 
-  it('calls fetch with correct URL on grid ready', async () => {
+  it('initializes the grid API on grid ready', async () => {
     render(<ValpreReactDataTable {...defaultProps} />);
-    // Wait for fetch to be called
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining(`${defaultProps.url}/api/data`));
+    await waitFor(() => expect(screen.queryByText('No rows to display!')).not.toBeInTheDocument());
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('displays loading component when data is being fetched', async () => {
-    render(<ValpreReactDataTable {...defaultProps} />);
-    // Initially, the loading component should be in the document
+  it('displays loading component when fetching data', () => {
+    render(<ValpreReactDataTable {...defaultProps} loadingComponent={<div>Loading...</div>} />);
+    fireEvent.gridReady(screen.getByRole('grid'));
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
-  it('handles and displays errors during data fetch', async () => {
-    global.fetch.mockImplementationOnce(() => Promise.reject(new Error('Network error')));
+  it('handles errors during data fetch', async () => {
+    // Override fetch to simulate an error
+    fetch.mockImplementationOnce(() => Promise.reject('Network error'));
     render(<ValpreReactDataTable {...defaultProps} />);
-    await waitFor(() => expect(defaultProps.onError).toHaveBeenCalled());
+    fireEvent.gridReady(screen.getByRole('grid'));
+    await waitFor(() => expect(defaultProps.onError).toHaveBeenCalledWith('Network error'));
     expect(screen.getByText('An error occurred')).toBeInTheDocument();
   });
 
-  it('displays data when fetched successfully', async () => {
+  it('correctly fetches data with sort and filter parameters', async () => {
     render(<ValpreReactDataTable {...defaultProps} />);
-    await waitFor(() => expect(screen.getByText('Item 1')).toBeInTheDocument());
+    const params = {
+      request: {
+        startRow: 0,
+        endRow: 20,
+        sortModel: [{ colId: 'name', sort: 'asc' }],
+        filterModel: { name: { filter: 'Item' } }
+      }
+    };
+
+    fireEvent.gridReady(screen.getByRole('grid'), params);
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      `${defaultProps.url}/api/data?startRow=0&endRow=20&sort_by=name&order=asc&filters={"name":"Item"}`
+    ));
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates the rows and total row count based on the response', async () => {
+    render(<ValpreReactDataTable {...defaultProps} />);
+    fireEvent.gridReady(screen.getByRole('grid'));
+    await waitFor(() => {
+      expect(screen.getByText('Item 1')).toBeInTheDocument();
+      expect(screen.getByText('100')).toBeInTheDocument();  // Assume this selector is for row count
+    });
   });
 });
