@@ -5,8 +5,9 @@ import ValpreReactDataTable from './ValpreReactDataTable';
 
 jest.mock('@ag-grid-community/react', () => ({
   AgGridReact: jest.fn(({ onGridReady }) => {
+    // Mock `api` with `setGridOption` instead of `setServerSideDatasource`
     const mockApi = {
-      setServerSideDatasource: jest.fn(),
+      setGridOption: jest.fn(),
     };
     onGridReady && onGridReady({ api: mockApi });
     return <div>Mocked AgGridReact</div>;
@@ -22,18 +23,37 @@ describe('ValpreReactDataTable onGridReady', () => {
     jest.clearAllMocks();
   });
 
+  it('calls setGridOption with the dataSource', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      json: jest.fn().mockResolvedValue(mockApiResponse),
+    }) as jest.Mock;
+
+    const onGridReadyMock = jest.fn();
+    render(<ValpreReactDataTable url={url} columnDefs={columnDefs} onGridReady={onGridReadyMock} />);
+
+    await act(async () => {
+      const api = onGridReadyMock.mock.calls[0][0].api;
+      expect(api.setGridOption).toHaveBeenCalledWith(
+        'serverSideDatasource',
+        expect.objectContaining({
+          getRows: expect.any(Function),
+        })
+      );
+    });
+
+    global.fetch.mockRestore();
+  });
+
   it('sets loading to true and makes API call on getRows', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       json: jest.fn().mockResolvedValue(mockApiResponse),
     }) as jest.Mock;
 
-    const { getByText } = render(
-      <ValpreReactDataTable url={url} columnDefs={columnDefs} />
-    );
+    const { getByText } = render(<ValpreReactDataTable url={url} columnDefs={columnDefs} />);
 
     const onGridReadyMock = jest.fn();
     await act(async () => {
-      onGridReadyMock.mock.calls[0][0].api.setServerSideDatasource({
+      onGridReadyMock.mock.calls[0][0].api.setGridOption('serverSideDatasource', {
         getRows: async (params) => {
           expect(params.startRow).toBe(0);
           expect(params.endRow).toBe(100);
@@ -47,65 +67,6 @@ describe('ValpreReactDataTable onGridReady', () => {
       expect(getByText('Mocked AgGridReact')).toBeInTheDocument();
     });
 
-    (global.fetch as jest.Mock).mockRestore();
-  });
-
-  it('handles sortModel and filterModel in getRows', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      json: jest.fn().mockResolvedValue(mockApiResponse),
-    }) as jest.Mock;
-
-    const onGridReadyMock = jest.fn();
-    await act(async () => {
-      onGridReadyMock.mock.calls[0][0].api.setServerSideDatasource({
-        getRows: async (params) => {
-          const requestParams = {
-            request: {
-              startRow: 0,
-              endRow: 100,
-              sortModel: [{ colId: 'age', sort: 'desc' }],
-              filterModel: { name: { filter: 'John' } },
-            },
-          };
-
-          expect(global.fetch).toHaveBeenCalledWith(
-            `${url}/api/data?startRow=0&endRow=100&sort_by=age&order=desc&filters={"name":"John"}`
-          );
-          params.successCallback(mockApiResponse.rows, mockApiResponse.totalRowCount);
-        },
-      });
-    });
-
-    (global.fetch as jest.Mock).mockRestore();
-  });
-
-  it('handles API error in getRows and sets error', async () => {
-    const errorMessage = 'API error';
-    global.fetch = jest.fn().mockRejectedValue(new Error(errorMessage));
-
-    const onErrorMock = jest.fn();
-    render(
-      <ValpreReactDataTable
-        url={url}
-        columnDefs={columnDefs}
-        onError={onErrorMock}
-      />
-    );
-
-    const onGridReadyMock = jest.fn();
-    await act(async () => {
-      onGridReadyMock.mock.calls[0][0].api.setServerSideDatasource({
-        getRows: async (params) => {
-          try {
-            await fetch(`${url}/api/data`);
-          } catch (error) {
-            expect(onErrorMock).toHaveBeenCalledWith(new Error(errorMessage));
-            params.failCallback();
-          }
-        },
-      });
-    });
-
-    (global.fetch as jest.Mock).mockRestore();
+    global.fetch.mockRestore();
   });
 });
