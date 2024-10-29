@@ -5,9 +5,8 @@ import ValpreReactDataTable from './ValpreReactDataTable';
 
 jest.mock('@ag-grid-community/react', () => ({
   AgGridReact: jest.fn(({ onGridReady }) => {
-    // Mock `api` with `setGridOption` instead of `setServerSideDatasource`
     const mockApi = {
-      setGridOption: jest.fn(),
+      setGridOption: jest.fn(), // Forcefully mock `setGridOption` as a function for testing
     };
     onGridReady && onGridReady({ api: mockApi });
     return <div>Mocked AgGridReact</div>;
