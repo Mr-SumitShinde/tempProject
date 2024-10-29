@@ -1,123 +1,140 @@
-import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
-import '@testing-library/jest-dom';
+The warning you’re seeing is due to the ref passed to a function component (AgGridReact), which does not support refs directly unless it's wrapped with React.forwardRef. To address this, we need to modify ValpreReactDataTable to use React.forwardRef when creating the ref for AgGridReact.
+
+Here's how to adjust ValpreReactDataTable to use React.forwardRef:
+
+Step 1: Modify the Component with React.forwardRef
+
+import React, { useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { AgGridReact } from '@ag-grid-community/react';
-import ValpreReactDataTable from './ValpreReactDataTable';
+import {
+  IServerSideDatasource,
+  ColDef,
+  ModuleRegistry,
+  IServerSideGetRowsParams,
+  ColGroupDef,
+} from '@ag-grid-community/core';
+import { ServerSideRowModelModule } from 'ag-grid-enterprise';
+import '/valpre-grid-theme-barclays.scss';
 
-jest.mock('@ag-grid-community/react', () => ({
-  AgGridReact: jest.fn(() => <div>Mocked AgGridReact</div>),
-}));
+interface DataTableProps {
+  url: string;
+  columnDefs: ColDef[] | ColGroupDef<any>[];
+  cacheBlockSize?: number;
+  maxBlocksInCache?: number;
+  pagination?: boolean;
+  pageSize?: number;
+  loadingComponent?: JSX.Element;
+  onError?: (error: Error) => void;
+  [key: string]: any;
+}
 
-describe('ValpreReactDataTable', () => {
-  const columnDefs = [{ field: 'name' }, { field: 'age' }];
-  const url = 'https://mock-api.com';
+const overlayNoRowsTemplate = 'No rows to display!';
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+ModuleRegistry.registerModules([ServerSideRowModelModule as any]);
 
-  it('renders without crashing', () => {
-    render(<ValpreReactDataTable url={url} columnDefs={columnDefs} />);
-    expect(screen.getByText('Mocked AgGridReact')).toBeInTheDocument();
-  });
+const ValpreReactDataTable = forwardRef<AgGridReact, DataTableProps>(({
+  url,
+  columnDefs,
+  cacheBlockSize = 100,
+  maxBlocksInCache = 10,
+  pagination = false,
+  pageSize = 100,
+  loadingComponent,
+  onError,
+  ...gridProps
+}, ref) => {
+  const gridRef = useRef<AgGridReact>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  it('displays loading component when loading', async () => {
-    const loadingComponent = <div>Loading...</div>;
-    
-    // Mock fetch to keep it in a loading state
-    jest.spyOn(global, 'fetch').mockImplementation(() =>
-      new Promise(() => {})
-    );
+  useImperativeHandle(ref, () => gridRef.current as AgGridReact);
 
-    render(
-      <ValpreReactDataTable
-        url={url}
-        columnDefs={columnDefs}
-        loadingComponent={loadingComponent}
-      />
-    );
+  const containerStyle = useMemo(() => ({ width: '100%', height: '100%' }), []);
+  const gridStyle = useMemo(() => ({ height: '100%', width: '100%' }), []);
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+  const defaultColDef = useMemo(() => ({
+    flex: 1,
+    minWidth: 100,
+  }), []);
 
-    (global.fetch as jest.Mock).mockRestore();
-  });
+  const onGridReady = (params: any) => {
+    const dataSource: IServerSideDatasource = {
+      getRows: async (params: IServerSideGetRowsParams) => {
+        setLoading(true);
+        setError(null);
 
-  it('handles error and displays error message', async () => {
-    const onError = jest.fn();
-    const errorMessage = 'An error occurred';
+        try {
+          const { startRow, endRow, sortModel, filterModel } = params.request;
+          const sortField = sortModel[0]?.colId || 'id';
+          const sortDirection = sortModel[0]?.sort || 'asc';
+          const filters: any = {};
 
-    jest.spyOn(global, 'fetch').mockImplementation(() =>
-      Promise.reject(new Error(errorMessage))
-    );
+          if (filterModel != null) {
+            Object.keys(filterModel).forEach((field) => {
+              filters[field] = (filterModel as any)[field].filter;
+            });
+          }
 
-    render(
-      <ValpreReactDataTable
-        url={url}
-        columnDefs={columnDefs}
-        onError={onError}
-      />
-    );
+          const response = await fetch(
+            `${url}/api/data?startRow=${startRow}&endRow=${endRow}&sort_by=${sortField}&order=${sortDirection}&filters=${JSON.stringify(filters)}`
+          );
+          const data = await response.json();
 
-    await waitFor(() => {
-      expect(onError).toHaveBeenCalled();
-    });
-
-    expect(screen.getByText(errorMessage)).toBeInTheDocument();
-
-    (global.fetch as jest.Mock).mockRestore();
-  });
-
-  it('calls onGridReady with a valid data source and executes getRows', async () => {
-    const onGridReadyMock = jest.fn();
-    
-    // Mock fetch response for getRows
-    const mockData = {
-      rows: [{ name: 'John Doe', age: 30 }],
-      totalRowCount: 1,
+          const rowCount = data.totalRowCount !== undefined ? data.totalRowCount : -1;
+          params.success({ rowData: data.rows, rowCount });
+        } catch (err) {
+          const fetchError = err as Error;
+          params.fail();
+          setError(fetchError);
+          onError && onError(fetchError);
+        } finally {
+          setLoading(false);
+        }
+      },
     };
-    jest.spyOn(global, 'fetch').mockResolvedValue({
-      json: jest.fn().mockResolvedValue(mockData),
-    } as unknown as Response);
 
-    render(
-      <ValpreReactDataTable
-        url={url}
-        columnDefs={columnDefs}
-        onGridReady={onGridReadyMock}
-      />
-    );
+    params.api.setServerSideDatasource(dataSource);
+  };
 
-    // Simulate grid ready event
-    await act(async () => {
-      onGridReadyMock.mock.calls[0][0].api.setServerSideDatasource({
-        getRows: async (params) => {
-          await params.successCallback(mockData.rows, mockData.totalRowCount);
-        },
-      });
-    });
-
-    await waitFor(() => {
-      expect(onGridReadyMock).toHaveBeenCalled();
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${url}/api/data?startRow=0&endRow=100&sort_by=id&order=asc&filters={}`,
-        expect.anything()
-      );
-      expect(screen.getByText('Mocked AgGridReact')).toBeInTheDocument();
-    });
-
-    (global.fetch as jest.Mock).mockRestore();
-  });
-
-  it('renders column definitions correctly', async () => {
-    render(<ValpreReactDataTable url={url} columnDefs={columnDefs} />);
-
-    await waitFor(() => {
-      expect(AgGridReact).toHaveBeenCalledWith(
-        expect.objectContaining({
-          columnDefs,
-        }),
-        {}
-      );
-    });
-  });
+  return (
+    <div>
+      {loading && loadingComponent}
+      {error && <div className="error-message">An error occurred: {error.message}</div>}
+      <div style={containerStyle}>
+        <div style={gridStyle}>
+          <AgGridReact
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            ref={gridRef}
+            domLayout="autoHeight"
+            className="valpre-grid-theme-barclays"
+            rowModelType="serverSide"
+            overlayNoRowsTemplate={overlayNoRowsTemplate}
+            cacheBlockSize={cacheBlockSize}
+            maxBlocksInCache={maxBlocksInCache}
+            pagination={pagination}
+            paginationPageSize={pageSize}
+            suppressScrollOnNewData={true}
+            suppressColumnVirtualisation={true}
+            onGridReady={onGridReady}
+            {...gridProps}
+          />
+        </div>
+      </div>
+    </div>
+  );
 });
+
+export default ValpreReactDataTable;
+
+Explanation
+
+React.forwardRef: Wraps ValpreReactDataTable so it can accept a ref from a parent component.
+
+useImperativeHandle: Exposes gridRef as the component's ref, allowing parent components to access AgGridReact methods through ValpreReactDataTable.
+
+
+Usage in Tests
+
+No changes are required in the tests to use the forwardRef version of the component. This change should remove the ref-related warning, as now ValpreReactDataTable is wrapped with forwardRef and allows gridRef to be used without warnings.
+
