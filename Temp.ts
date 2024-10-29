@@ -1,84 +1,112 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import ValpreReactDataTable from './ValpreReactDataTable'; // Adjust the import path as needed
-import { AgGridReact } from '@ag-grid-community/react';
+import { renderHook } from '@testing-library/react-hooks';
+import { useFormContext } from 'react-hook-form';
+import { useFormWatch, VisibleIfCondition } from './useFormWatch';
 
-// Mock AgGridReact to avoid actual rendering in tests
-jest.mock('@ag-grid-community/react', () => ({
-  AgGridReact: jest.fn(() => <div data-testid="ag-grid-react"></div>)
+jest.mock('react-hook-form', () => ({
+  useFormContext: jest.fn(),
 }));
 
-describe('ValpreReactDataTable Component', () => {
-  const defaultProps = {
-    url: '/test-url',
-    columnDefs: [{ field: 'name' }],
-  };
+describe('useFormWatch', () => {
+  const mockWatch = jest.fn();
+  const mockRegister = jest.fn();
+  const mockUnregister = jest.fn();
+  const mockSetValue = jest.fn();
 
   beforeEach(() => {
+    useFormContext.mockReturnValue({
+      watch: mockWatch,
+      register: mockRegister,
+      unregister: mockUnregister,
+      setValue: mockSetValue,
+    });
     jest.clearAllMocks();
   });
 
-  test('renders without crashing', () => {
-    render(<ValpreReactDataTable {...defaultProps} />);
-    expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
-  });
-
-  test('displays loading component when loading is true', () => {
-    const loadingComponent = <div data-testid="loading-component">Loading...</div>;
-    render(<ValpreReactDataTable {...defaultProps} loadingComponent={loadingComponent} />);
-    
-    // Mock loading state
-    fireEvent(gridRef.current!.api, 'setLoading', true);
-    
-    expect(screen.getByTestId('loading-component')).toBeInTheDocument();
-  });
-
-  test('displays error message when an error occurs', async () => {
-    const mockError = new Error('Test error');
-    const onErrorMock = jest.fn();
-
-    render(<ValpreReactDataTable {...defaultProps} onError={onErrorMock} />);
-    
-    // Trigger error in data fetching
-    fireEvent(gridRef.current!.api, 'setError', mockError);
-    
-    expect(onErrorMock).toHaveBeenCalledWith(mockError);
-    expect(screen.getByText('An error occurred')).toBeInTheDocument();
-    expect(screen.getByText(mockError.message)).toBeInTheDocument();
-  });
-
-  test('calls onGridReady and sets data source', async () => {
-    render(<ValpreReactDataTable {...defaultProps} />);
-    const onGridReady = jest.fn();
-    
-    fireEvent(gridRef.current!.api, 'onGridReady', onGridReady);
-    
-    expect(onGridReady).toHaveBeenCalledTimes(1);
-    expect(gridRef.current!.api.getServerSideDatasource()).toBeDefined();
-  });
-
-  test('fetches data correctly on getRows and calls success callback', async () => {
-    const fetchMock = jest.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ totalRowCount: 50, rows: [{ id: 1, name: 'Test' }] }),
-    });
-    global.fetch = fetchMock;
-
-    render(<ValpreReactDataTable {...defaultProps} />);
-    const getRowsParams = {
-      request: { startRow: 0, endRow: 20, sortModel: [], filterModel: {} },
-      success: jest.fn(),
-      fail: jest.fn(),
-    };
-    
-    await waitFor(() => getRows(getRowsParams));
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/test-url/api/data?startRow=0&endRow=20&sort_by=id&order=asc&filters={}'
+  it('should return true if no visibleIf conditions are provided', () => {
+    const { result } = renderHook(() =>
+      useFormWatch(undefined, 'testField', {})
     );
-    expect(getRowsParams.success).toHaveBeenCalledWith({
-      rowData: [{ id: 1, name: 'Test' }],
-      rowCount: 50,
-    });
+    expect(result.current).toBe(true);
+  });
+
+  it('should return true if visibleIf is an empty array', () => {
+    const { result } = renderHook(() =>
+      useFormWatch([], 'testField', {})
+    );
+    expect(result.current).toBe(true);
+  });
+
+  it('should register and unregister the field based on visibility', () => {
+    const visibleIfCondition: VisibleIfCondition[] = [
+      { key: 'field1', value: 'value1' },
+    ];
+
+    mockWatch.mockReturnValueOnce(['value1']);
+
+    const { result } = renderHook(() =>
+      useFormWatch(visibleIfCondition, 'testField', {})
+    );
+
+    expect(result.current).toBe(true);
+    expect(mockUnregister).toHaveBeenCalledWith('testField');
+  });
+
+  it('should evaluate `and` conditions correctly', () => {
+    const visibleIfCondition: VisibleIfCondition[] = [
+      {
+        and: [
+          { key: 'field1', value: 'value1' },
+          { key: 'field2', value: 'value2' },
+        ],
+      },
+    ];
+
+    mockWatch.mockReturnValueOnce(['value1', 'value2']);
+
+    const { result } = renderHook(() =>
+      useFormWatch(visibleIfCondition, 'testField', {})
+    );
+
+    expect(result.current).toBe(true);
+  });
+
+  it('should evaluate `or` conditions correctly', () => {
+    const visibleIfCondition: VisibleIfCondition[] = [
+      {
+        or: [
+          { key: 'field1', value: 'value1' },
+          { key: 'field2', value: 'value2' },
+        ],
+      },
+    ];
+
+    mockWatch.mockReturnValueOnce(['value1']);
+
+    const { result } = renderHook(() =>
+      useFormWatch(visibleIfCondition, 'testField', {})
+    );
+
+    expect(result.current).toBe(true);
+  });
+
+  it('should set value to null when condition changes to not visible', () => {
+    const visibleIfCondition: VisibleIfCondition[] = [
+      { key: 'field1', value: 'value1' },
+    ];
+
+    mockWatch.mockReturnValueOnce(['differentValue']);
+
+    const { result, rerender } = renderHook(() =>
+      useFormWatch(visibleIfCondition, 'testField', {})
+    );
+
+    expect(result.current).toBe(false);
+    expect(mockRegister).toHaveBeenCalledWith('testField', {});
+
+    mockWatch.mockReturnValueOnce(['value1']);
+    rerender();
+
+    expect(mockUnregister).toHaveBeenCalledWith('testField');
+    expect(mockSetValue).toHaveBeenCalledWith('testField', null);
   });
 });
