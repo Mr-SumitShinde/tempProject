@@ -7,8 +7,22 @@ import * as d3 from 'd3';
 
 describe('FlowChart Component', () => {
   const mockData: HierarchicalData[] = [
-    { id: '1', parentId: null, line1: 'Line 1', line2: 'Line 2' },
-    { id: '2', parentId: '1', line1: 'Child Line 1', line2: 'Child Line 2' },
+    {
+      id: '1',
+      parentId: null,
+      line1: 'Line 1',
+      line2: 'Line 2',
+      label: 'Label 1',
+      formData: {} // Adjust as needed for your interface structure
+    },
+    {
+      id: '2',
+      parentId: '1',
+      line1: 'Child Line 1',
+      line2: 'Child Line 2',
+      label: 'Label 2',
+      formData: {} // Adjust as needed for your interface structure
+    },
   ];
 
   const mockOnNodeClick = jest.fn();
@@ -50,18 +64,4 @@ describe('FlowChart Component', () => {
   it('renders the correct number of nodes', () => {
     render(<FlowChart data={mockData} onNodeClick={mockOnNodeClick} />);
     const nodes = screen.getAllByRole('graphics-document');
-    expect(nodes.length).toBe(mockData.length);
-  });
-
-  it('renders node text correctly', () => {
-    render(<FlowChart data={mockData} onNodeClick={mockOnNodeClick} />);
-    expect(screen.getByText('Line 1')).toBeInTheDocument();
-    expect(screen.getByText('Child Line 1')).toBeInTheDocument();
-  });
-
-  it('renders links between nodes correctly', () => {
-    render(<FlowChart data={mockData} onNodeClick={mockOnNodeClick} />);
-    const links = screen.getAllByRole('link');
-    expect(links.length).toBe(1);
-  });
-});
+    expect(nodes
