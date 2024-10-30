@@ -1,23 +1,30 @@
-function getQueryStringFromFilterModel(filterModel: Record<string, any> | null): string {
-  const filters: Record<string, any> = {};
+app.get('/api/data', (req, res) => {
+  const { page = 1, offset = 10, sortBy = 'id', orderBy = 'asc', ...filterParams } = req.query;
 
-  if (filterModel != null) {
-    Object.keys(filterModel).forEach((field) => {
-      filters[field] = filterModel[field].filter;
-    });
-  }
+  const startRow = (page - 1) * offset;
+  const endRow = page * offset;
 
-  return Object.keys(filters)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(filters[key])}`)
-    .join('&');
-}
+  let filteredData = [...mockData];
 
-// Example usage
-const filterModel = {
-  key1: { filter: 'value1' },
-  key2: { filter: 'value2' },
-  key3: { filter: 'value3' }
-};
+  Object.keys(filterParams).forEach(field => {
+    filteredData = filteredData.filter(item => String(item[field]) === String(filterParams[field]));
+  });
 
-console.log(getQueryStringFromFilterModel(filterModel));
-// Output: "key1=value1&key2=value2&key3=value3"
+  filteredData.sort((a, b) => {
+    const fieldA = a[sortBy];
+    const fieldB = b[sortBy];
+
+    if (orderBy === 'asc') {
+      return fieldA > fieldB ? 1 : -1;
+    } else {
+      return fieldA < fieldB ? 1 : -1;
+    }
+  });
+
+  const paginatedData = filteredData.slice(startRow, endRow);
+
+  res.json({
+    rows: paginatedData,
+    totalRows: filteredData.length
+  });
+});
