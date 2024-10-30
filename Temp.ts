@@ -65,3 +65,6 @@ describe('FlowChart Component', () => {
     render(<FlowChart data={mockData} onNodeClick={mockOnNodeClick} />);
     const nodes = screen.getAllByRole('graphics-document');
     expect(nodes
+
+
+npm install @testing-library/jest-dom
