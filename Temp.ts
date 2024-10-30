@@ -1,20 +1,9 @@
-const addFilterProperties = columnDefs => 
-  columnDefs.map(column => column.isFilter ? {
-    ...column,
-    filter: 'agTextColumnFilter',
-    filterParams: {
-      filterOptions: ["contains"],
-      maxNumConditions: 1
-    }
-  } : column);
+function objectToQueryString(obj) {
+  return Object.keys(obj)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`)
+    .join('&');
+}
 
 // Example usage
-const columnDefs = [
-  { field: 'name', isFilter: true },
-  { field: 'age' },
-  { field: 'country', isFilter: true },
-  { field: 'status' }
-];
-
-const updatedColumnDefs = addFilterProperties(columnDefs);
-console.log(updatedColumnDefs);
+const input = { key1: 'value1', key2: 'value2', key3: 'value3' };
+console.log(objectToQueryString(input)); // Output: "key1=value1&key2=value2&key3=value3"
