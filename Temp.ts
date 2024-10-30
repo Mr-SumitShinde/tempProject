@@ -1,18 +1,12 @@
-function addFilterProperties(columnDefs) {
-  return columnDefs.map(column => {
-    if (column.isFilter) {
-      return {
-        ...column,
-        filter: 'agTextColumnFilter',
-        filterParams: {
-          filterOptions: ["contains"],
-          maxNumConditions: 1
-        }
-      };
+const addFilterProperties = columnDefs => 
+  columnDefs.map(column => column.isFilter ? {
+    ...column,
+    filter: 'agTextColumnFilter',
+    filterParams: {
+      filterOptions: ["contains"],
+      maxNumConditions: 1
     }
-    return column; // return column as is if isFilter is not true
-  });
-}
+  } : column);
 
 // Example usage
 const columnDefs = [
