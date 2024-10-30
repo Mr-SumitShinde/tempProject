@@ -1,9 +1,23 @@
-function objectToQueryString(obj: Record<string, any>): string {
-  return Object.keys(obj)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`)
+function getQueryStringFromFilterModel(filterModel: Record<string, any> | null): string {
+  const filters: Record<string, any> = {};
+
+  if (filterModel != null) {
+    Object.keys(filterModel).forEach((field) => {
+      filters[field] = filterModel[field].filter;
+    });
+  }
+
+  return Object.keys(filters)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(filters[key])}`)
     .join('&');
 }
 
 // Example usage
-const input = { key1: 'value1', key2: 'value2', key3: 'value3' };
-console.log(objectToQueryString(input)); // Output: "key1=value1&key2=value2&key3=value3"
+const filterModel = {
+  key1: { filter: 'value1' },
+  key2: { filter: 'value2' },
+  key3: { filter: 'value3' }
+};
+
+console.log(getQueryStringFromFilterModel(filterModel));
+// Output: "key1=value1&key2=value2&key3=value3"
