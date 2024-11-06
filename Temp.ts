@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PaginationSimple, Box, Type, Table, Section, SectionItem } from '@barclays/blueprint-react'; // Import necessary components
 
 // Define types for props
 interface ValpreReactDataTableProps {
@@ -41,8 +42,8 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const responseData = await response.json();
-            setData(extractDataFromResponse(responseData)); // Use the prop function to extract data
-            setTotalRecords(extractTotalRecordsFromResponse(responseData)); // Use the prop function to extract total records
+            setData(extractDataFromResponse(responseData));
+            setTotalRecords(extractTotalRecordsFromResponse(responseData));
         } catch (err: any) {
             setError(err.message);
             setData([]);
@@ -60,19 +61,14 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({
         setCurrentPage(newPage);
     };
 
-    const renderCellContent = (item: any, header: any) => {
-        if (header.render) {
-            return header.render(item);
-        }
-        return item[header.dataKey];
-    };
+    const totalPages = Math.ceil(totalRecords / pageSize);
 
     if (isLoading) return <div>Loading...</div>;
     if (error) return <div>Error fetching data: {error}</div>;
 
     return (
-        <div>
-            <table>
+        <Section>
+            <Table>
                 <thead>
                     <tr>
                         {headers.map((header, index) => (
@@ -87,22 +83,23 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({
                         <tr key={index}>
                             {headers.map((header, idx) => (
                                 <td key={idx} style={{ textAlign: header.alignment || 'left' }}>
-                                    {renderCellContent(item, header)}
+                                    header.render ? header.render(item) : item[header.dataKey]
                                 </td>
                             ))}
                         </tr>
                     ))}
                 </tbody>
-            </table>
-            <div>
-                <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>
-                    Previous
-                </button>
-                <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage * pageSize >= totalRecords}>
-                    Next
-                </button>
-            </div>
-        </div>
+            </Table>
+            <Box display="flex" justifyContent="space-between">
+                <Type>Showing page {currentPage} of {totalPages}</Type>
+                <PaginationSimple
+                    active={currentPage}
+                    variant="secondary"
+                    total={totalPages}
+                    onButtonClick={onPageChange}
+                />
+            </Box>
+        </Section>
     );
 };
 
