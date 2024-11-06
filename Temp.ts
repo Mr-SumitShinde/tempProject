@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Box, PaginationSimple, Section, SectionItem, Table, Type } from '@barclays/blueprint-react';
 
 const ValpreReactDataTable = ({
@@ -18,9 +17,13 @@ const ValpreReactDataTable = ({
         const queryParams = createQueryParams ? createQueryParams(page, pageSize) : `page=${page}&size=${pageSize}`;
         const url = `${baseUrl}?${queryParams}`;
         try {
-            const response = await axios.get(url);
-            setData(response.data.items);
-            setTotalPages(Math.ceil(response.data.totalItems / rowsPerPage));
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const responseData = await response.json();
+            setData(responseData.items);
+            setTotalPages(Math.ceil(responseData.totalItems / rowsPerPage));
         } catch (error) {
             console.error('Failed to fetch data:', error);
             setData([]);
