@@ -1,12 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Box, PaginationSimple, Section, SectionItem, Table, Type } from '@barclays/blueprint-react';
 
-const ValpreReactDataTable = ({ data, onPageChange, totalPages, headers }) => {
-    const [currentPage, setCurrentPage] = useState(1);
+const ValpreReactDataTable = ({
+    baseUrl,
+    createQueryParams,
+    headers,
+    initialPage = 1,
+    pageSize = 100,
+    rowsPerPage = 10
+}) => {
+    const [data, setData] = useState([]);
+    const [currentPage, setCurrentPage] = useState(initialPage);
+    const [totalPages, setTotalPages] = useState(0);
 
-    const handlePageChange = (newPage) => {
+    const fetchData = async (page) => {
+        const queryParams = createQueryParams ? createQueryParams(page, pageSize) : `page=${page}&size=${pageSize}`;
+        const url = `${baseUrl}?${queryParams}`;
+        try {
+            const response = await axios.get(url);
+            setData(response.data.items);
+            setTotalPages(Math.ceil(response.data.totalItems / rowsPerPage));
+        } catch (error) {
+            console.error('Failed to fetch data:', error);
+            setData([]);
+            setTotalPages(0);
+        }
+    };
+
+    useEffect(() => {
+        const dataPage = Math.ceil(currentPage * rowsPerPage / pageSize);
+        fetchData(dataPage);
+    }, [currentPage, baseUrl, pageSize, rowsPerPage]);
+
+    const onPageChange = (newPage) => {
         setCurrentPage(newPage);
-        onPageChange(newPage);
     };
 
     const renderCellContent = (item, header) => {
@@ -15,6 +43,8 @@ const ValpreReactDataTable = ({ data, onPageChange, totalPages, headers }) => {
         }
         return item[header.dataKey];
     };
+
+    const displayData = data.slice((currentPage - 1) % totalPages * rowsPerPage, currentPage % totalPages * rowsPerPage);
 
     return (
         <Section>
@@ -36,7 +66,7 @@ const ValpreReactDataTable = ({ data, onPageChange, totalPages, headers }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {data.map((item, index) => (
+                        {displayData.map((item, index) => (
                             <tr key={index}>
                                 {headers.map((header, idx) => (
                                     <Type
@@ -53,19 +83,19 @@ const ValpreReactDataTable = ({ data, onPageChange, totalPages, headers }) => {
                     </tbody>
                 </Table>
             </SectionItem>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContents: 'space-between' }}>
                 <Box>
                     <Type>
-                        Showing 1-10 of 99 items as of 01/11/2024 09:00 AM (GMT+1)
+                        Showing items for page {currentPage}
                     </Type>
                 </Box>
                 <SectionItem>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContents: 'flex-end' }}>
                         <div style={{ border: '2px solid rgb(226, 226, 226)', borderRadius: '28px', width: 'fit-content' }}>
                             <PaginationSimple
                                 variant="secondary"
                                 active={currentPage}
-                                onButtonClick={handlePageChange}
+                                onButtonClick={onPageChange}
                                 total={totalPages}
                             />
                         </div>
