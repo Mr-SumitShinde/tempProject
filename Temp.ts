@@ -12,6 +12,8 @@ interface ValpreReactDataTableProps {
     }>;
     initialPage?: number;
     pageSize?: number;
+    extractDataFromResponse: (responseData: any) => any[];
+    extractTotalRecordsFromResponse: (responseData: any) => number;
 }
 
 // Define the component
@@ -21,6 +23,8 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({
     headers,
     initialPage = 1,
     pageSize = 10,
+    extractDataFromResponse,
+    extractTotalRecordsFromResponse
 }) => {
     const [data, setData] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(initialPage);
@@ -37,8 +41,8 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const responseData = await response.json();
-            setData(responseData.data.attributes.records);
-            setTotalRecords(responseData.data.attributes.totalNoOfRecords);
+            setData(extractDataFromResponse(responseData)); // Use the prop function to extract data
+            setTotalRecords(extractTotalRecordsFromResponse(responseData)); // Use the prop function to extract total records
         } catch (err: any) {
             setError(err.message);
             setData([]);
