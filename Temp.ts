@@ -6,15 +6,16 @@ const ValpreReactDataTable = ({
     createQueryParams,
     headers,
     initialPage = 1,
-    pageSize = 100,
+    pageSize = 10,  // Modified to align with rowsPerPage for clarity
     rowsPerPage = 10
 }) => {
     const [data, setData] = useState([]);
     const [currentPage, setCurrentPage] = useState(initialPage);
-    const [totalPages, setTotalPages] = useState(0);
+    const [totalRecords, setTotalRecords] = useState(0);
 
     const fetchData = async (page) => {
-        const queryParams = createQueryParams ? createQueryParams(page, pageSize) : `page=${page}&size=${pageSize}`;
+        const offset = (page - 1) * pageSize;
+        const queryParams = createQueryParams ? createQueryParams(page, pageSize) : `page=${page}&offset=${offset}`;
         const url = `${baseUrl}?${queryParams}`;
         try {
             const response = await fetch(url);
@@ -22,19 +23,18 @@ const ValpreReactDataTable = ({
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const responseData = await response.json();
-            setData(responseData.items);
-            setTotalPages(Math.ceil(responseData.totalItems / rowsPerPage));
+            setData(responseData.data.attributes.records);
+            setTotalRecords(responseData.data.attributes.totalNoOfRecords);
         } catch (error) {
             console.error('Failed to fetch data:', error);
             setData([]);
-            setTotalPages(0);
+            setTotalRecords(0);
         }
     };
 
     useEffect(() => {
-        const dataPage = Math.ceil(currentPage * rowsPerPage / pageSize);
-        fetchData(dataPage);
-    }, [currentPage, baseUrl, pageSize, rowsPerPage]);
+        fetchData(currentPage);
+    }, [currentPage, baseUrl, pageSize]);
 
     const onPageChange = (newPage) => {
         setCurrentPage(newPage);
@@ -47,7 +47,8 @@ const ValpreReactDataTable = ({
         return item[header.dataKey];
     };
 
-    const displayData = data.slice((currentPage - 1) % totalPages * rowsPerPage, currentPage % totalPages * rowsPerPage);
+    const totalPages = Math.ceil(totalRecords / rowsPerPage);
+    const displayData = data;  // No slicing needed because backend handles pagination
 
     return (
         <Section>
