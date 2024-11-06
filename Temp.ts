@@ -1,3 +1,4 @@
+Showing 1-10 of 99 items as of 01/11/2024 09:00 AM (GMT+1)
 const sampleData = [
   {
     id: 1,
@@ -67,3 +68,4 @@ const App = () => {
 };
 
 ReactDOM.render(<App />, document.getElementById('root'));
+
