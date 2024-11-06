@@ -1,35 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { Box, PaginationSimple, Section, SectionItem, Table, Type } from '@barclays/blueprint-react';
 
-const ValpreReactDataTable = ({
+// Define types for props
+interface ValpreReactDataTableProps {
+    baseUrl: string;
+    createQueryParams: (page: number, pageSize: number) => string;
+    headers: Array<{
+        title: string;
+        dataKey: string;
+        alignment?: 'left' | 'center' | 'right';
+        render?: (item: any) => JSX.Element;
+    }>;
+    initialPage?: number;
+    pageSize?: number;
+}
+
+// Define the component
+const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({
     baseUrl,
     createQueryParams,
     headers,
     initialPage = 1,
     pageSize = 10,
-    extractDataFromResponse, // Function prop to extract data array from response
-    extractTotalRecordsFromResponse, // Function prop to extract total number of records from response
 }) => {
-    const [data, setData] = useState([]);
+    const [data, setData] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(initialPage);
     const [totalRecords, setTotalRecords] = useState(0);
+    const [isLoading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const fetchData = async (page) => {
-        const offset = (page - 1) * pageSize;
-        const queryParams = createQueryParams ? createQueryParams(page, pageSize) : `page=${page}&offset=${offset}`;
+    const fetchData = async (page: number) => {
+        setLoading(true);
+        setError(null);
+        const queryParams = createQueryParams(page, pageSize);
         const url = `${baseUrl}?${queryParams}`;
         try {
             const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const responseData = await response.json();
-            setData(extractDataFromResponse(responseData)); // Using the prop function to extract data
-            setTotalRecords(extractTotalRecordsFromResponse(responseData)); // Using the prop function to extract total records
-        } catch (error) {
-            console.error('Failed to fetch data:', error);
+            setData(responseData.data.attributes.records);
+            setTotalRecords(responseData.data.attributes.totalNoOfRecords);
+        } catch (err: any) {
+            setError(err.message);
             setData([]);
             setTotalRecords(0);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -37,77 +52,53 @@ const ValpreReactDataTable = ({
         fetchData(currentPage);
     }, [currentPage, baseUrl, pageSize]);
 
-    const onPageChange = (newPage) => {
+    const onPageChange = (newPage: number) => {
         setCurrentPage(newPage);
     };
 
-    const renderCellContent = (item, header) => {
+    const renderCellContent = (item: any, header: any) => {
         if (header.render) {
             return header.render(item);
         }
         return item[header.dataKey];
     };
 
-    const totalPages = Math.ceil(totalRecords / pageSize);
-    const displayData = data;
+    if (isLoading) return <div>Loading...</div>;
+    if (error) return <div>Error fetching data: {error}</div>;
 
     return (
-        <Section>
-            <SectionItem>
-                <Table headingVariant="secondary" tableHeadNoPaddingBottom>
-                    <thead>
-                        <tr>
-                            {headers.map((header, index) => (
-                                <Type
-                                    key={index}
-                                    alignment={header.alignment}
-                                    element="th"
-                                    scope="col"
-                                    weight={header.weight}
-                                >
-                                    {header.title}
-                                </Type>
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        {headers.map((header, index) => (
+                            <th key={index} style={{ textAlign: header.alignment || 'left' }}>
+                                {header.title}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {data.map((item, index) => (
+                        <tr key={index}>
+                            {headers.map((header, idx) => (
+                                <td key={idx} style={{ textAlign: header.alignment || 'left' }}>
+                                    {renderCellContent(item, header)}
+                                </td>
                             ))}
                         </tr>
-                    </thead>
-                    <tbody>
-                        {displayData.map((item, index) => (
-                            <tr key={index}>
-                                {headers.map((header, idx) => (
-                                    <Type
-                                        key={idx}
-                                        alignment={header.alignment}
-                                        element="td"
-                                        weight={header.weight}
-                                    >
-                                        {renderCellContent(item, header)}
-                                    </Type>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </Table>
-            </SectionItem>
-            <div style={{ display: 'flex', justifyContents: 'space-between' }}>
-                <Box>
-                    <Type>
-                        Showing items for page {currentPage}
-                    </Type>
-                </Box>
-                <SectionItem>
-                    <div style={{ display: 'flex', justifyContents: 'flex-end' }}>
-                        <div style={{ border: '2px solid rgb(226, 226, 226)', borderRadius: '28px', width: 'fit-content' }}>
-                            <PaginationSimple
-                                variant="secondary"
-                                active={currentPage}
-                                onButtonClick={onPageChange}
-                                total={totalPages}
-                            />
-                        </div>
-                    </div>
-                </SectionItem>
+                    ))}
+                </tbody>
+            </table>
+            <div>
+                <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>
+                    Previous
+                </button>
+                <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage * pageSize >= totalRecords}>
+                    Next
+                </button>
             </div>
-        </Section>
+        </div>
     );
 };
 
