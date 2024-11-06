@@ -6,8 +6,9 @@ const ValpreReactDataTable = ({
     createQueryParams,
     headers,
     initialPage = 1,
-    pageSize = 10,  // Modified to align with rowsPerPage for clarity
-    rowsPerPage = 10
+    pageSize = 10,
+    extractDataFromResponse, // Function prop to extract data array from response
+    extractTotalRecordsFromResponse, // Function prop to extract total number of records from response
 }) => {
     const [data, setData] = useState([]);
     const [currentPage, setCurrentPage] = useState(initialPage);
@@ -23,8 +24,8 @@ const ValpreReactDataTable = ({
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const responseData = await response.json();
-            setData(responseData.data.attributes.records);
-            setTotalRecords(responseData.data.attributes.totalNoOfRecords);
+            setData(extractDataFromResponse(responseData)); // Using the prop function to extract data
+            setTotalRecords(extractTotalRecordsFromResponse(responseData)); // Using the prop function to extract total records
         } catch (error) {
             console.error('Failed to fetch data:', error);
             setData([]);
@@ -47,8 +48,8 @@ const ValpreReactDataTable = ({
         return item[header.dataKey];
     };
 
-    const totalPages = Math.ceil(totalRecords / rowsPerPage);
-    const displayData = data;  // No slicing needed because backend handles pagination
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    const displayData = data;
 
     return (
         <Section>
