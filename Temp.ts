@@ -68,37 +68,42 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({
 
     return (
         <Section>
-            <Table>
-                <thead>
-                    <tr>
-                        {headers.map((header, index) => (
-                            <th key={index} style={{ textAlign: header.alignment || 'left' }}>
-                                {header.title}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {data.map((item, index) => (
-                        <tr key={index}>
-                            {headers.map((header, idx) => (
-                                <td key={idx} style={{ textAlign: header.alignment || 'left' }}>
-                                    header.render ? header.render(item) : item[header.dataKey]
-                                </td>
+            <SectionItem>
+                <Table>
+                    <thead>
+                        <tr>
+                            {headers.map((header, index) => (
+                                <th key={index} style={{ textAlign: header.alignment || 'left' }}>
+                                    {header.title}
+                                </th>
                             ))}
                         </tr>
-                    ))}
-                </tbody>
-            </Table>
-            <Box display="flex" justifyContent="space-between">
-                <Type>Showing page {currentPage} of {totalPages}</Type>
+                    </thead>
+                    <tbody>
+                        {data.map((item, index) => (
+                            <tr key={index}>
+                                {headers.map((header, idx) => (
+                                    <td key={idx} style={{ textAlign: header.alignment || 'left' }}>
+                                        {header.render ? header.render(item) : item[header.dataKey]}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </Table>
+            </SectionItem>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Type>Showing items for page {currentPage} of {totalPages}</Type>
                 <PaginationSimple
-                    active={currentPage}
                     variant="secondary"
-                    total={totalPages}
+                    active={currentPage}
                     onButtonClick={onPageChange}
+                    total={totalPages}
                 />
             </Box>
+            <div style={{ marginTop: '20px', backgroundColor: '#f8f8f8', padding: '10px', borderRadius: '5px' }}>
+                <Type element="p" typeStyle="bodyLarge">This is additional informational text that helps users understand table data or context better.</Type>
+            </div>
         </Section>
     );
 };
