@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { PaginationSimple, Box, Type, Table, Section, SectionItem } from '@barclays/blueprint-react';
 
+interface Item {
+    [key: string]: any;  // Generic item definition to support dynamic data structures
+}
+
 interface ValpreReactDataTableProps<T> {
     baseUrl: string;
-    createQueryParams: (page: number, pageSize: number) => string;
+    createQueryParams: (page: number, offSet: number) => string;
     headers: Array<{
         title: string;
         dataKey: keyof T;
@@ -12,16 +16,18 @@ interface ValpreReactDataTableProps<T> {
     }>;
     initialPage?: number;
     pageSize?: number;
+    offSet: number;  // Define how many items to fetch in one API call
     extractDataFromResponse: (responseData: any) => T[];
     extractTotalRecordsFromResponse: (responseData: any) => number;
 }
 
-function ValpreReactDataTable<T extends object>({ // Ensure T extends object to allow any non-primitive type
+function ValpreReactDataTable<T extends object>({
     baseUrl,
     createQueryParams,
     headers,
     initialPage = 1,
     pageSize = 10,
+    offSet,
     extractDataFromResponse,
     extractTotalRecordsFromResponse
 }: ValpreReactDataTableProps<T>) {
@@ -46,7 +52,7 @@ function ValpreReactDataTable<T extends object>({ // Ensure T extends object to 
         if (startItemIndex >= allData.items.length || endItemIndex > allData.items.length || page > allData.lastFetchedPage) {
             setLoading(true);
             setError(null);
-            const queryParams = createQueryParams(page, pageSize);
+            const queryParams = createQueryParams(page, offSet);
             const url = `${baseUrl}?${queryParams}`;
             try {
                 const response = await fetch(url);
