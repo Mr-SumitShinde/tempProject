@@ -1,34 +1,39 @@
-const express = require('express');
-const app = express();
-const PORT = 3000;
+To handle scenarios where the current data might not be present, or the currentData array is empty, you can modify the rendering logic within the <tbody> section of your component to display a blank row or a message indicating that there is no data to display. Here's how you can adjust the <tbody> section to handle empty data gracefully:
 
-// Mock data setup (ensure this is defined in your script or import it appropriately)
-const data = {
-    items: Array.from({ length: 100 }, (_, i) => ({
-        id: i + 1,
-        name: `Item ${i + 1}`,
-        value: `Value ${i + 1}`,
-        status: ['Active', 'Inactive', 'Pending'][i % 3]
-    })),
-    totalCount: 100
-};
+Adjusting <tbody> to Handle No Data
 
-app.use(express.json());
+Below is the modified <tbody> section which checks if currentData is empty and displays a blank row or a custom message:
 
-app.get('/data', (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const offSet = parseInt(req.query.offset) || 10;  // Changed from pageSize to offSet for clarity
-    const start = (page - 1) * offSet;  // Calculate the starting index
+<tbody>
+    {currentData.length > 0 ? (
+        currentData.map((item, index) => (
+            <tr key={index}>
+                {headers.map((header, idx) => (
+                    <td key={idx} style={{ textAlign: header.alignment || 'left' }}>
+                        {header.render ? header.render(item) : (typeof item[header.dataKey] === 'string' || typeof item[header.dataKey] === 'number' ? item[header.dataKey] : JSON.stringify(item[header.dataKey]))}
+                    </td>
+                ))}
+            </tr>
+        ))
+    ) : (
+        <tr>
+            <td colSpan={headers.length} style={{ textAlign: 'center' }}>
+                No data available
+            </td>
+        </tr>
+    )}
+</tbody>
 
-    // Use the offSet to determine how many items to return from the starting index
-    const paginatedItems = data.items.slice(start, start + offSet);
+Explanation
 
-    res.json({
-        items: paginatedItems,
-        totalCount: data.totalCount
-    });
-});
+Condition Check: The <tbody> now starts with a conditional check to see if currentData has any entries. If it does, it maps over currentData and renders rows as before.
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+Empty Data Handling: If currentData is empty, it renders a single row (<tr>) with one cell (<td>) that spans all the columns defined in headers. This cell contains a message saying "No data available".
+
+ColSpan: The colSpan attribute on the <td> is set to the length of headers, which makes the cell span all columns of the table, ensuring the message is centered and spans the entire width of the table.
+
+
+This approach ensures that your table remains user-friendly and informative even when no data is available to display, providing clear feedback to users that no data is present for the selected page or query.
+
+By implementing this logic, your ValpreReactDataTable becomes more robust, effectively handling cases where the fetched or filtered data results in an empty array, thus enhancing the user experience by clearly communicating the lack of data.
+
