@@ -49,7 +49,8 @@ function ValpreReactDataTable<T extends object>({
         const startItemIndex = (page - 1) * pageSize;
         const endItemIndex = startItemIndex + pageSize;
 
-        if (startItemIndex >= allData.items.length || endItemIndex > allData.items.length || page > allData.lastFetchedPage) {
+        // Check if the data for the requested page is already available
+        if (allData.items.length < endItemIndex && page > allData.lastFetchedPage) {
             setLoading(true);
             setError(null);
             const queryParams = createQueryParams(page, offSet);
@@ -72,7 +73,11 @@ function ValpreReactDataTable<T extends object>({
     };
 
     useEffect(() => {
-        fetchData(currentPage);
+        const startItemIndex = (currentPage - 1) * pageSize;
+        const endItemIndex = startItemIndex + pageSize;
+        if (allData.items.length < endItemIndex && currentPage > allData.lastFetchedPage) {
+            fetchData(currentPage);
+        }
     }, [currentPage]);
 
     const onPageChange = (newPage: number) => {
