@@ -1,13 +1,9 @@
-import { useEffect, useRef } from 'react';
-
-function MyComponent(props) {
-  const hasMounted = useRef(false);
-
-  useEffect(() => {
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-    } else {
-      console.log("Effect runs only on updates, not on the first render");
+function renderCellValue(value: any): React.ReactNode {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return value;
     }
-  }, [props.value]);
+    if (value && typeof value === 'object') {
+        return JSON.stringify(value);
+    }
+    return null;
 }
