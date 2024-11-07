@@ -1,133 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { PaginationSimple, Box, Type, Table, Section, SectionItem } from '@barclays/blueprint-react';
+const express = require('express');
+const app = express();
+const PORT = 3000;
 
-interface Item {
-    [key: string]: any;  // Generic item definition to support dynamic data structures
-}
+// Mock data setup (ensure this is defined in your script or import it appropriately)
+const data = {
+    items: Array.from({ length: 100 }, (_, i) => ({
+        id: i + 1,
+        name: `Item ${i + 1}`,
+        value: `Value ${i + 1}`,
+        status: ['Active', 'Inactive', 'Pending'][i % 3]
+    })),
+    totalCount: 100
+};
 
-interface ValpreReactDataTableProps<T> {
-    baseUrl: string;
-    createQueryParams: (page: number, offSet: number) => string;
-    headers: Array<{
-        title: string;
-        dataKey: keyof T;
-        alignment?: 'left' | 'center' | 'right';
-        render?: (item: T) => JSX.Element;
-    }>;
-    initialPage?: number;
-    pageSize?: number;
-    offSet: number;  // Define how many items to fetch in one API call
-    extractDataFromResponse: (responseData: any) => T[];
-    extractTotalRecordsFromResponse: (responseData: any) => number;
-}
+app.use(express.json());
 
-function ValpreReactDataTable<T extends object>({
-    baseUrl,
-    createQueryParams,
-    headers,
-    initialPage = 1,
-    pageSize = 10,
-    offSet,
-    extractDataFromResponse,
-    extractTotalRecordsFromResponse
-}: ValpreReactDataTableProps<T>) {
-    const [allData, setAllData] = useState<{
-        items: T[];
-        totalCount: number;
-        lastFetchedPage: number;
-    }>({
-        items: [],
-        totalCount: 0,
-        lastFetchedPage: 0
+app.get('/data', (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const offSet = parseInt(req.query.offset) || 10;  // Changed from pageSize to offSet for clarity
+    const start = (page - 1) * offSet;  // Calculate the starting index
+
+    // Use the offSet to determine how many items to return from the starting index
+    const paginatedItems = data.items.slice(start, start + offSet);
+
+    res.json({
+        items: paginatedItems,
+        totalCount: data.totalCount
     });
+});
 
-    const [currentPage, setCurrentPage] = useState(initialPage);
-    const [isLoading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchData = async (page: number) => {
-        const startItemIndex = (page - 1) * pageSize;
-        const endItemIndex = startItemIndex + pageSize;
-
-        // Check if the data for the requested page is already available
-        if (allData.items.length < endItemIndex && page > allData.lastFetchedPage) {
-            setLoading(true);
-            setError(null);
-            const queryParams = createQueryParams(page, offSet);
-            const url = `${baseUrl}?${queryParams}`;
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const responseData = await response.json();
-                setAllData(prev => ({
-                    items: [...prev.items, ...extractDataFromResponse(responseData)],
-                    totalCount: extractTotalRecordsFromResponse(responseData),
-                    lastFetchedPage: page
-                }));
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        }
-    };
-
-    useEffect(() => {
-        const startItemIndex = (currentPage - 1) * pageSize;
-        const endItemIndex = startItemIndex + pageSize;
-        if (allData.items.length < endItemIndex && currentPage > allData.lastFetchedPage) {
-            fetchData(currentPage);
-        }
-    }, [currentPage]);
-
-    const onPageChange = (newPage: number) => {
-        if (newPage < 1 || newPage > Math.ceil(allData.totalCount / pageSize)) return;
-        setCurrentPage(newPage);
-    };
-
-    const totalPages = Math.ceil(allData.totalCount / pageSize);
-    const currentData = allData.items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-    if (isLoading) return <div>Loading...</div>;
-    if (error) return <div>Error fetching data: {error}</div>;
-
-    return (
-        <Section>
-            <SectionItem>
-                <Table>
-                    <thead>
-                        <tr>
-                            {headers.map((header, index) => (
-                                <th key={index} style={{ textAlign: header.alignment || 'left' }}>
-                                    {header.title}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {currentData.map((item, index) => (
-                            <tr key={index}>
-                                {headers.map((header, idx) => (
-                                    <td key={idx} style={{ textAlign: header.alignment || 'left' }}>
-                                        {header.render ? header.render(item) : item[header.dataKey]}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </Table>
-            </SectionItem>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Type>Showing items for page {currentPage} of {totalPages}</Type>
-                <PaginationSimple
-                    variant="secondary"
-                    active={currentPage}
-                    onButtonClick={onPageChange}
-                    total={totalPages}
-                />
-            </Box>
-        </Section>
-    );
-}
-
-export default ValpreReactDataTable;
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
