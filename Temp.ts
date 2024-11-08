@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { GridApi, GridReadyEvent, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css'; // Core grid CSS, only needs to be imported once
-import 'ag-grid-community/styles/ag-theme-alpine.css'; // Optional theme CSS
+import { GridApi, ICellRendererParams, GridReadyEvent, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
+import 'ag-grid-community/dist/styles/ag-grid.css'; // Ensure styles are correctly imported
+import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Ensure theme styles are correctly imported
 
 interface ValpreReactDataTableProps {
     url: string;
@@ -12,7 +12,7 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
     const gridRef = useRef<GridApi | null>(null);
 
     const onGridReady = (params: GridReadyEvent) => {
-        gridRef.current = params.api;  
+        gridRef.current = params.api;
         const dataSource = createDataSource(url);
         params.api.setServerSideDatasource(dataSource);
     };
@@ -29,7 +29,7 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
                     }
                 })
                 .catch(error => {
-                    console.error('Error fetching data: ', error);
+                    console.error('Error fetching data:', error);
                     params.failCallback();
                 });
         }
