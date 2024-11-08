@@ -1,21 +1,24 @@
 import React, { useEffect, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
+import { GridApi, GridReadyEvent, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css'; // Core grid CSS, only needs to be imported once
 import 'ag-grid-community/styles/ag-theme-alpine.css'; // Optional theme CSS
 
-const ValpreReactDataTable = ({ url }) => {
-    const gridRef = useRef(null);
+interface ValpreReactDataTableProps {
+    url: string;
+}
 
-    const onGridReady = (params) => {
-        // Binding the grid API to the ref, correctly handled by React
+const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
+    const gridRef = useRef<GridApi | null>(null);
+
+    const onGridReady = (params: GridReadyEvent) => {
         gridRef.current = params.api;  
         const dataSource = createDataSource(url);
         params.api.setServerSideDatasource(dataSource);
     };
 
-    // Dynamically create a data source based on the URL
-    const createDataSource = (url) => ({
-        getRows: (params) => {
+    const createDataSource = (url: string): IServerSideDatasource => ({
+        getRows: (params: IServerSideGetRowsParams) => {
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -32,7 +35,6 @@ const ValpreReactDataTable = ({ url }) => {
         }
     });
 
-    // React to URL changes by updating the data source
     useEffect(() => {
         if (gridRef.current && url) {
             const newDataSource = createDataSource(url);
@@ -48,8 +50,8 @@ const ValpreReactDataTable = ({ url }) => {
                 rowModelType="serverSide"
                 serverSideStoreType="partial"
                 columnDefs={[
-                    { field: 'id', sortable: true, filter: true },
-                    { field: 'name', sortable: true, filter: true }
+                    { field: 'id', headerName: 'ID', sortable: true, filter: true },
+                    { field: 'name', headerName: 'Name', sortable: true, filter: true }
                 ]}
             />
         </div>
