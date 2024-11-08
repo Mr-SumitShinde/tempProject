@@ -9,11 +9,10 @@ interface ValpreReactDataTableProps {
 }
 
 const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
-    // Use useRef to hold the Grid API, and ensure correct typing
     const gridRef = useRef<AgGridReact>(null);
 
     const onGridReady = (params: GridReadyEvent) => {
-        // Now using AgGridReact's API directly from the ref
+        // Assigning the Grid API to gridRef for usage in effects
         const dataSource = createDataSource(url);
         params.api.setServerSideDatasource(dataSource);
     };
@@ -37,9 +36,11 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
     });
 
     useEffect(() => {
-        if (gridRef.current?.api && url) {
+        if (gridRef.current && url) {
+            // Accessing the grid API correctly from the ref
+            const api: GridApi = gridRef.current.api;
             const newDataSource = createDataSource(url);
-            gridRef.current.api.setServerSideDatasource(newDataSource);
+            api.setServerSideDatasource(newDataSource);
         }
     }, [url]);
 
