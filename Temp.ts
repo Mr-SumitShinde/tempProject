@@ -1,6 +1,6 @@
 import React from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { GridReadyEvent, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
+import { IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
 import 'ag-grid-community/dist/styles/ag-grid.css'; // Core grid CSS
 import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Theme CSS
 
@@ -9,13 +9,10 @@ interface ValpreReactDataTableProps {
 }
 
 const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
+    // Generate a unique key based on the URL
+    const key = url;
 
-    const onGridReady = (params: GridReadyEvent) => {
-        const dataSource = createDataSource(url);
-        params.api.setServerSideDatasource(dataSource);
-    };
-
-    const createDataSource = (url: string): IServerSideDatasource => ({
+    const createDataSource = (): IServerSideDatasource => ({
         getRows: (params: IServerSideGetRowsParams) => {
             fetch(url)
                 .then(response => response.json())
@@ -33,10 +30,12 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
         }
     });
 
+    // The component rerenders every time the key changes, which is every time the URL changes
     return (
         <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
             <AgGridReact
-                onGridReady={onGridReady}
+                key={key} // Using URL as a key to force reinitialization
+                onGridReady={params => params.api.setServerSideDatasource(createDataSource())}
                 rowModelType="serverSide"
                 serverSideStoreType="partial"
                 columnDefs={[
