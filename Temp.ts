@@ -7,7 +7,8 @@ const ValpreReactDataTable = ({ url }) => {
     const gridRef = useRef(null);
 
     const onGridReady = (params) => {
-        gridRef.current = params.api;
+        // Binding the grid API to the ref, correctly handled by React
+        gridRef.current = params.api;  
         const dataSource = createDataSource(url);
         params.api.setServerSideDatasource(dataSource);
     };
@@ -42,6 +43,7 @@ const ValpreReactDataTable = ({ url }) => {
     return (
         <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
             <AgGridReact
+                ref={gridRef}
                 onGridReady={onGridReady}
                 rowModelType="serverSide"
                 serverSideStoreType="partial"
