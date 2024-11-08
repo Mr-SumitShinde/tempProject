@@ -1,18 +1,19 @@
 import React, { useEffect, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { GridApi, ICellRendererParams, GridReadyEvent, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
-import 'ag-grid-community/dist/styles/ag-grid.css'; // Ensure styles are correctly imported
-import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Ensure theme styles are correctly imported
+import { GridApi, GridReadyEvent, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
+import 'ag-grid-community/dist/styles/ag-grid.css'; // Core grid CSS
+import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Theme CSS
 
 interface ValpreReactDataTableProps {
     url: string;
 }
 
 const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
-    const gridRef = useRef<GridApi | null>(null);
+    // Use useRef to hold the Grid API, and ensure correct typing
+    const gridRef = useRef<AgGridReact>(null);
 
     const onGridReady = (params: GridReadyEvent) => {
-        gridRef.current = params.api;
+        // Now using AgGridReact's API directly from the ref
         const dataSource = createDataSource(url);
         params.api.setServerSideDatasource(dataSource);
     };
@@ -36,9 +37,9 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
     });
 
     useEffect(() => {
-        if (gridRef.current && url) {
+        if (gridRef.current?.api && url) {
             const newDataSource = createDataSource(url);
-            gridRef.current.setServerSideDatasource(newDataSource);
+            gridRef.current.api.setServerSideDatasource(newDataSource);
         }
     }, [url]);
 
