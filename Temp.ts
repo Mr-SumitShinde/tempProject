@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { GridApi, GridReadyEvent, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
 import 'ag-grid-community/dist/styles/ag-grid.css'; // Core grid CSS
@@ -10,9 +10,10 @@ interface ValpreReactDataTableProps {
 
 const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
     const gridRef = useRef<AgGridReact>(null);
+    const [gridApi, setGridApi] = useState<GridApi | null>(null);
 
     const onGridReady = (params: GridReadyEvent) => {
-        // Assigning the Grid API to gridRef for usage in effects
+        setGridApi(params.api);
         const dataSource = createDataSource(url);
         params.api.setServerSideDatasource(dataSource);
     };
@@ -36,13 +37,11 @@ const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
     });
 
     useEffect(() => {
-        if (gridRef.current && url) {
-            // Accessing the grid API correctly from the ref
-            const api: GridApi = gridRef.current.api;
+        if (gridApi && url) {
             const newDataSource = createDataSource(url);
-            api.setServerSideDatasource(newDataSource);
+            gridApi.setServerSideDatasource(newDataSource);
         }
-    }, [url]);
+    }, [url, gridApi]);
 
     return (
         <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
