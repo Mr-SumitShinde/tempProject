@@ -2,7 +2,10 @@ const fetchData = async (dbPage: number) => {
   const startItemIndex = (dbPage - 1) * offset;
   const endItemIndex = startItemIndex + offset;
 
-  if (allData.items.length < endItemIndex && dbPage > allData.lastFetchedPage) {
+  // Check if the data for the current dbPage is already loaded
+  const hasDataForPage = allData.items.slice(startItemIndex, endItemIndex).every((item) => item !== undefined);
+
+  if (!hasDataForPage && dbPage > allData.lastFetchedPage) {
     setLoading(true);
     setError(null);
 
@@ -16,6 +19,11 @@ const fetchData = async (dbPage: number) => {
       const responseData = await response.json();
       const newItems = extractDataFromResponse(responseData);
       const updatedItems = [...allData.items];
+
+      // Ensure the array has enough space for new items
+      if (updatedItems.length < endItemIndex) {
+        updatedItems.length = endItemIndex;
+      }
 
       // Insert the new data at the correct position in the array
       for (let i = 0; i < newItems.length; i++) {
@@ -35,7 +43,3 @@ const fetchData = async (dbPage: number) => {
     }
   }
 };
-
-
-
-const initialItems = new Array(totalItemCount).fill(undefined);
