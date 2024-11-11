@@ -43,3 +43,6 @@ const fetchData = async (dbPage: number) => {
     }
   }
 };
+
+
+const initialItems = new Array(totalItemCount).fill(undefined);
