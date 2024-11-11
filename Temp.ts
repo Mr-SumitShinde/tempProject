@@ -1,48 +1,77 @@
-const fetchData = async (dbPage: number) => {
-  const startItemIndex = (dbPage - 1) * offset;
-  const endItemIndex = startItemIndex + offset;
+import React, { useState, useEffect, useRef } from 'react';
 
-  // Check if the data for the current dbPage is already loaded
-  const hasDataForPage = allData.items.slice(startItemIndex, endItemIndex).every((item) => item !== undefined);
+const offset = 100;
+const baseUrl = 'https://your-api.com/data';
 
-  if (!hasDataForPage && dbPage > allData.lastFetchedPage) {
-    setLoading(true);
-    setError(null);
+function DataTable() {
+    const hasMounted = useRef(false);
+    const [dbPage, setDbPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isLoading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [allData, setAllData] = useState({ items: [], lastFetchedPage: 0, totalCount: 0 });
 
-    const queryParams = createQueryParams(dbPage, offset);
-    const url = `${baseUrl}?${queryParams}`;
+    const fetchData = async (page) => {
+        const startItemIndex = (page - 1) * offset;
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (allData.items.length < startItemIndex + offset && page > allData.lastFetchedPage) {
+            setLoading(true);
+            setError(null);
+            const queryParams = `page=${page}&offset=${offset}`;
+            const url = `${baseUrl}?${queryParams}`;
 
-      const responseData = await response.json();
-      const newItems = extractDataFromResponse(responseData);
-      const updatedItems = [...allData.items];
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const responseData = await response.json();
+                const newItems = responseData.data; // Assuming 'data' field in response
+                const updatedItems = [...allData.items];
 
-      // Ensure the array has enough space for new items
-      if (updatedItems.length < endItemIndex) {
-        updatedItems.length = endItemIndex;
-      }
+                for (let i = 0; i < newItems.length; i++) {
+                    updatedItems[startItemIndex + i] = newItems[i];
+                }
 
-      // Insert the new data at the correct position in the array
-      for (let i = 0; i < newItems.length; i++) {
-        updatedItems[startItemIndex + i] = newItems[i];
-      }
+                setAllData(prev => ({
+                    ...prev,
+                    items: updatedItems,
+                    lastFetchedPage: page,
+                    totalCount: responseData.totalCount
+                }));
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
 
-      setAllData((prev) => ({
-        ...prev,
-        items: updatedItems,
-        totalCount: extractTotalRecordsFromResponse(responseData),
-        lastFetchedPage: dbPage,
-      }));
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-};
+    useEffect(() => {
+        if (!hasMounted.current) {
+            fetchData(dbPage); // Initial fetch
+            hasMounted.current = true;
+        }
+    }, [dbPage]);
 
+    useEffect(() => {
+        const startItemIndex = (currentPage - 1) * offset;
+        if (currentPage > allData.lastFetchedPage && allData.items.length < startItemIndex + offset) {
+            if (currentPage > Math.ceil(allData.totalCount / offset)) {
+                setDbPage(Math.ceil(allData.totalCount / offset));
+            } else {
+                setDbPage(currentPage);
+            }
+        }
+    }, [currentPage]);
 
-const initialItems = new Array(totalItemCount).fill(undefined);
+    return (
+        <div>
+            {/* Render your table and pagination controls here */}
+            {error && <p>Error: {error}</p>}
+            {isLoading ? <p>Loading...</p> : <p>Data Loaded</p>}
+        </div>
+    );
+}
+
+export default DataTable;
