@@ -1,42 +1,41 @@
-const offset: number = 100;
-const pageSize: number = offset; // Assuming pageSize and offset are the same
-
-const hasMounted = useRef(false);
-
-const [dbPage, setDbPage] = useState(1);
-const [currentPage, setCurrentPage] = useState(1);
-const [isLoading, setLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
-
-// Mock of allData to illustrate example
-const allData = {
-    items: [], // Array of data items
-    lastFetchedPage: 0,
-    totalCount: 1000 // Total count of items in the dataset
-};
-
 const fetchData = async (dbPage: number) => {
-    // Fetching logic here
+  const startItemIndex = (dbPage - 1) * offset;
+  const endItemIndex = startItemIndex + offset;
+
+  if (allData.items.length < endItemIndex && dbPage > allData.lastFetchedPage) {
+    setLoading(true);
+    setError(null);
+
+    const queryParams = createQueryParams(dbPage, offset);
+    const url = `${baseUrl}?${queryParams}`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const responseData = await response.json();
+      const newItems = extractDataFromResponse(responseData);
+      const updatedItems = [...allData.items];
+
+      // Insert the new data at the correct position in the array
+      for (let i = 0; i < newItems.length; i++) {
+        updatedItems[startItemIndex + i] = newItems[i];
+      }
+
+      setAllData((prev) => ({
+        ...prev,
+        items: updatedItems,
+        totalCount: extractTotalRecordsFromResponse(responseData),
+        lastFetchedPage: dbPage,
+      }));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 };
 
-useEffect(() => {
-    if (!hasMounted.current) {
-        hasMounted.current = true;
-        fetchData(dbPage); // Initial fetch
-    } else {
-        const startItemIndex = (currentPage - 1) * pageSize;
-        const endItemIndex = startItemIndex + pageSize;
 
-        if (currentPage > allData.lastFetchedPage && allData.items.length < endItemIndex) {
-            if (currentPage === Math.ceil(allData.totalCount / pageSize)) {
-                setDbPage(Math.ceil(allData.totalCount / offset));
-            } else {
-                setDbPage(dbPage + 1);
-            }
-        }
-    }
-}, [currentPage]);
 
-useEffect(() => {
-    fetchData(dbPage);
-}, [dbPage]);
+const initialItems = new Array(totalItemCount).fill(undefined);
