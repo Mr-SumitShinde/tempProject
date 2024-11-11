@@ -1,50 +1,42 @@
-import React from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import { IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
-import 'ag-grid-community/dist/styles/ag-grid.css'; // Core grid CSS
-import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Theme CSS
+const offset: number = 100;
+const pageSize: number = offset; // Assuming pageSize and offset are the same
 
-interface ValpreReactDataTableProps {
-    url: string;
-}
+const hasMounted = useRef(false);
 
-const ValpreReactDataTable: React.FC<ValpreReactDataTableProps> = ({ url }) => {
-    // Generate a unique key based on the URL
-    const key = url;
+const [dbPage, setDbPage] = useState(1);
+const [currentPage, setCurrentPage] = useState(1);
+const [isLoading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
 
-    const createDataSource = (): IServerSideDatasource => ({
-        getRows: (params: IServerSideGetRowsParams) => {
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        params.successCallback(data.rows, data.lastRow);
-                    } else {
-                        params.failCallback();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching data:', error);
-                    params.failCallback();
-                });
-        }
-    });
-
-    // The component rerenders every time the key changes, which is every time the URL changes
-    return (
-        <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
-            <AgGridReact
-                key={key} // Using URL as a key to force reinitialization
-                onGridReady={params => params.api.setServerSideDatasource(createDataSource())}
-                rowModelType="serverSide"
-                serverSideStoreType="partial"
-                columnDefs={[
-                    { field: 'id', headerName: 'ID', sortable: true, filter: true },
-                    { field: 'name', headerName: 'Name', sortable: true, filter: true }
-                ]}
-            />
-        </div>
-    );
+// Mock of allData to illustrate example
+const allData = {
+    items: [], // Array of data items
+    lastFetchedPage: 0,
+    totalCount: 1000 // Total count of items in the dataset
 };
 
-export default ValpreReactDataTable;
+const fetchData = async (dbPage: number) => {
+    // Fetching logic here
+};
+
+useEffect(() => {
+    if (!hasMounted.current) {
+        hasMounted.current = true;
+        fetchData(dbPage); // Initial fetch
+    } else {
+        const startItemIndex = (currentPage - 1) * pageSize;
+        const endItemIndex = startItemIndex + pageSize;
+
+        if (currentPage > allData.lastFetchedPage && allData.items.length < endItemIndex) {
+            if (currentPage === Math.ceil(allData.totalCount / pageSize)) {
+                setDbPage(Math.ceil(allData.totalCount / offset));
+            } else {
+                setDbPage(dbPage + 1);
+            }
+        }
+    }
+}, [currentPage]);
+
+useEffect(() => {
+    fetchData(dbPage);
+}, [dbPage]);
