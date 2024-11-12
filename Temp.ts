@@ -1,6 +1,5 @@
-const lastPage = 10; // Example value for lastPage
+basename='/pbwm/launcher/identity-verification'>
 
-for (let page = lastPage; page >= 1; page--) {
-    console.log(`Processing page ${page}`);
-    // Add your logic here
-}
+Indexs/src/index.html,
+
+basestrefs/pbwn/launcher/identity-verification'
