@@ -1,15 +1,22 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
 
-// Create the context
-export const AppContext = createContext();
+interface AppContextType {
+    data: any;
+    loading: boolean;
+    error: string | null;
+}
 
-// Create a provider component
-export const AppProvider = ({ children }) => {
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
-    // Replace 'https://api.example.com/data' with your actual API endpoint
+interface AppProviderProps {
+    children: ReactNode;
+}
+
+export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -21,7 +28,7 @@ export const AppProvider = ({ children }) => {
                 const result = await response.json();
                 setData(result);
             } catch (err) {
-                setError(err.message);
+                setError((err as Error).message);
             } finally {
                 setLoading(false);
             }
