@@ -1,45 +1,45 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
-
-interface AppContextType {
-    data: any;
-    loading: boolean;
-    error: string | null;
-}
-
-export const AppContext = createContext<AppContextType | undefined>(undefined);
-
-interface AppProviderProps {
-    children: ReactNode;
-}
-
-export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch('https://api.example.com/data');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch data');
-                }
-                const result = await response.json();
-                setData(result);
-            } catch (err) {
-                setError((err as Error).message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    return (
-        <AppContext.Provider value={{ data, loading, error }}>
-            {children}
-        </AppContext.Provider>
-    );
+type Category = {
+    id: string;
+    type: string;
+    code: string;
+    desc: string;
+    flow: string;
+    subCategories?: {
+        id: string;
+        type: string;
+        code: string;
+        desc: string;
+        flow: string;
+    }[];
 };
+
+type ApiResponse = {
+    data: {
+        id: string;
+        type: string;
+        attributes: {
+            categories: Category[];
+        };
+    };
+};
+
+function processRefData(response: ApiResponse): Record<string, { code: string; desc: string }[]> {
+    const result: Record<string, { code: string; desc: string }[]> = {};
+
+    response.data.attributes.categories.forEach((category) => {
+        const key = category.code;
+
+        if (category.subCategories && category.subCategories.length > 0) {
+            result[key] = category.subCategories.map((subCat) => ({
+                code: subCat.code,
+                desc: subCat.desc,
+            }));
+        } else {
+            result[key] = [{ code: category.code, desc: category.desc }];
+        }
+    });
+
+    return result;
+}
+
+export default processRefData;
