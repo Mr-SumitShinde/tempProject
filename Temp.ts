@@ -1,11 +1,20 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import { AppProvider } from './AppContext';
+function processRefData(
+    response: ApiResponse
+): Record<string, { key: string; text: string }[]> {
+    const result: Record<string, { key: string; text: string }[]> = {};
 
-const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-root.render(
-    <AppProvider>
-        <App />
-    </AppProvider>
-);
+    const extractDeepestSubcategories = (category: any): { key: string; text: string }[] =>
+        category.subCategories && category.subCategories.length > 0
+            ? category.subCategories.flatMap(extractDeepestSubcategories)
+            : [{ key: category.code, text: category.desc }];
+
+    response.data.attributes.categories.forEach((category) => {
+        result[category.code] = category.subCategories && category.subCategories.length > 0
+            ? extractDeepestSubcategories(category)
+            : [{ key: category.code, text: category.desc }];
+    });
+
+    return result;
+}
+
+export default processRefData;
