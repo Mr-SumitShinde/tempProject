@@ -1,20 +1,29 @@
-function processRefData(
-    response: ApiResponse
-): Record<string, { key: string; text: string }[]> {
-    const result: Record<string, { key: string; text: string }[]> = {};
+import React, { useContext } from 'react';
+import { AppContext } from './AppContext';
 
-    const extractDeepestSubcategories = (category: any): { key: string; text: string }[] =>
-        category.subCategories && category.subCategories.length > 0
-            ? category.subCategories.flatMap(extractDeepestSubcategories)
-            : [{ key: category.code, text: category.desc }];
+const ExampleComponent: React.FC = () => {
+    const context = useContext(AppContext);
 
-    response.data.attributes.categories.forEach((category) => {
-        result[category.code] = category.subCategories && category.subCategories.length > 0
-            ? extractDeepestSubcategories(category)
-            : [{ key: category.code, text: category.desc }];
-    });
+    if (!context) {
+        return <p>Error: Context not found</p>;
+    }
 
-    return result;
-}
+    const { data, loading, error } = context;
 
-export default processRefData;
+    if (loading) {
+        return <p>Loading...</p>;
+    }
+
+    if (error) {
+        return <p>Error: {error}</p>;
+    }
+
+    return (
+        <div>
+            <h2>Fetched Data:</h2>
+            <pre>{JSON.stringify(data, null, 2)}</pre>
+        </div>
+    );
+};
+
+export default ExampleComponent;
