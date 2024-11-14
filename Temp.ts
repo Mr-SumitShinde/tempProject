@@ -1,90 +1,80 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
-
-interface AppContextType {
-    data: any;
-    loading: boolean;
-    error: string | null;
-}
-
-export const AppContext = createContext<AppContextType | undefined>(undefined);
-
-interface AppProviderProps {
-    children: ReactNode;
-}
-
-export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch('https://api.example.com/data');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch data');
-                }
-                const result = await response.json();
-                setData(result);
-            } catch (err) {
-                setError((err as Error).message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    return (
-        <AppContext.Provider value={{ data, loading, error }}>
-            {children}
-        </AppContext.Provider>
-    );
+type Category = {
+  id: string;
+  type: string;
+  code: string;
+  desc: string;
+  flow: string;
+  subCategories?: {
+    id: string;
+    type: string;
+    code: string;
+    desc: string;
+    flow: string;
+  }[];
 };
 
-
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import { AppProvider } from './AppContext';
-
-const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-root.render(
-    <AppProvider>
-        <App />
-    </AppProvider>
-);
-
-
-
-import React, { useContext } from 'react';
-import { AppContext } from './AppContext';
-
-const ExampleComponent: React.FC = () => {
-    const context = useContext(AppContext);
-
-    if (!context) {
-        return <p>Error: Context not found</p>;
-    }
-
-    const { data, loading, error } = context;
-
-    if (loading) {
-        return <p>Loading...</p>;
-    }
-
-    if (error) {
-        return <p>Error: {error}</p>;
-    }
-
-    return (
-        <div>
-            <h2>Fetched Data:</h2>
-            <pre>{JSON.stringify(data, null, 2)}</pre>
-        </div>
-    );
+type ApiResponse = {
+  data: {
+    id: string;
+    type: string;
+    attributes: {
+      categories: Category[];
+    };
+  };
 };
 
-export default ExampleComponent;
+function processData(response: ApiResponse): Record<string, { code: string; desc: string }[]> {
+  const result: Record<string, { code: string; desc: string }[]> = {};
+
+  response.data.attributes.categories.forEach((category) => {
+    const key = category.code;
+
+    if (category.subCategories && category.subCategories.length > 0) {
+      result[key] = category.subCategories.map((subCat) => ({
+        code: subCat.code,
+        desc: subCat.desc,
+      }));
+    } else {
+      result[key] = [{ code: category.code, desc: category.desc }];
+    }
+  });
+
+  return result;
+}
+
+// Example usage with your API response
+const apiResponse: ApiResponse = {
+  data: {
+    id: "25711601-18ed-4f08-927c-ac8a6a99c430",
+    type: "idvRefType",
+    attributes: {
+      categories: [
+        {
+          id: "108",
+          type: "PBIDVCONU",
+          code: "CTY",
+          desc: "COUNTRIES LIST",
+          flow: "PBIDV",
+          subCategories: [
+            {
+              id: "113",
+              type: "PBIDVSSYS",
+              code: "PBIDVSS",
+              desc: "Source System",
+              flow: "PBIDV",
+            },
+          ],
+        },
+        {
+          id: "133",
+          type: "PBIDVSTATUS",
+          code: "CSTATUS",
+          desc: "CASE STATUS",
+          flow: "PBIDV",
+        },
+      ],
+    },
+  },
+};
+
+console.log(processData(apiResponse));
