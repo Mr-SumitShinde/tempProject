@@ -1,54 +1,38 @@
-const express = require('express');
-const cors = require('cors');
+import React, { createContext, useState, useEffect } from 'react';
 
-const app = express();
-const PORT = 4099;
+// Create the context
+export const AppContext = createContext();
 
-app.use(cors());
-app.use(express.json());
+// Create a provider component
+export const AppProvider = ({ children }) => {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-const count = 537;
-const items = Array.from({ length: count }, (index) => ({
-    clientName: `Client ${index + 1}`,
-    status: ['READY TO SEND', 'APPROVED', 'EXPIRED LINK', 'REJECTED', 'REVIEW'][index % 5],
-    requestNo: `PB${2665000 + index}`,
-    submittedBy: ['Rebecca O\'Connell', 'Andrew Stocks'][index % 2],
-    dateCreated: new Date(2024, 8, (index % 30) + 1).toLocaleDateString('en-US')
-}));
-
-const data = {
-    items: items,
-    totalCount: count
-};
-
-app.get('/idnv', (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const pageSize = parseInt(req.query.offset) || 10;
-
-    // Remove `page` and `offset` from the query parameters for filtering
-    const filters = { ...req.query };
-    delete filters.page;
-    delete filters.offset;
-
-    // Filter items based on all query parameters dynamically
-    const filteredItems = data.items.filter(item => {
-        return Object.keys(filters).every(key => {
-            if (filters[key]) {
-                return String(item[key]).toLowerCase().includes(String(filters[key]).toLowerCase());
+    // Replace 'https://api.example.com/data' with your actual API endpoint
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('https://api.example.com/data');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                const result = await response.json();
+                setData(result);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
             }
-            return true;
-        });
-    });
+        };
 
-    const offset = (page - 1) * pageSize;
-    const paginatedItems = filteredItems.slice(offset, offset + pageSize);
+        fetchData();
+    }, []);
 
-    res.json({
-        items: paginatedItems,
-        totalCount: filteredItems.length
-    });
-});
-
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+    return (
+        <AppContext.Provider value={{ data, loading, error }}>
+            {children}
+        </AppContext.Provider>
+    );
+};
