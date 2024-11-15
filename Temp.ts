@@ -1,30 +1,27 @@
-type FormatOptions = {
-    timeZone?: string;
-    includeTimeZoneSuffix?: boolean;
-};
+function formatTimestamp(latestTimeStamp: string): string {
+    const date = new Date(latestTimeStamp);
 
-function formatTimestamp(
-    serverTimestamp: string,
-    options: FormatOptions = { timeZone: 'Etc/GMT-1', includeTimeZoneSuffix: true }
-): string {
-    const date = new Date(serverTimestamp);
-    if (isNaN(date.getTime())) {
-        return '';
+    const day: string = String(date.getUTCDate()).padStart(2, '0');
+    const month: string = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year: number = date.getUTCFullYear();
+
+    let hours: number = date.getUTCHours();
+    const minutes: string = String(date.getUTCMinutes()).padStart(2, '0');
+    const isAM: boolean = hours < 12;
+    const period: string = isAM ? 'AM' : 'PM';
+
+    if (hours === 0) {
+        hours = 12;
+    } else if (hours > 12) {
+        hours -= 12;
     }
+    const formattedHours: string = String(hours).padStart(2, '0');
 
-    const formatter = new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: options.timeZone
-    });
+    const timeZoneOffset: number = date.getTimezoneOffset() / 60;
+    const timeZone: string = `GMT${timeZoneOffset > 0 ? '-' : '+'}${Math.abs(timeZoneOffset)}`;
 
-    const formattedDate = formatter.format(date);
-    return options.includeTimeZoneSuffix ? `${formattedDate} (${options.timeZone})` : formattedDate;
+    return `${day}/${month}/${year} ${formattedHours}:${minutes} ${period} (${timeZone})`;
 }
 
-// Example usage:
-console.log(formatTimestamp("2024-04-10T11:40:32Z"));
+const input: string = "2024-04-10T11:40:32";
+console.log(formatTimestamp(input));
