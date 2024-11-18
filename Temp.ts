@@ -1,13 +1,12 @@
-/* LeftSideNavbar.css */
 .left-navbar {
     width: 250px;
-    height: 100vh; /* Full viewport height */
-    background-color: #333; /* Background color */
-    position: sticky; /* Make it sticky */
-    top: 0; /* Stick to the top */
-    left: 0; /* Stick to the left */
+    height: 100vh;
+    background-color: #333;
+    position: sticky;
+    top: 0;
+    left: 0;
     padding-top: 20px;
-    overflow-y: auto; /* Scroll if content overflows */
+    overflow-y: auto;
 }
 
 .left-navbar ul {
@@ -28,5 +27,5 @@
 }
 
 .left-navbar a:hover {
-    background-color: #575757; /* Hover effect */
+    background-color: #575757;
 }
