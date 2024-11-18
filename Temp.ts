@@ -1,27 +1,32 @@
-function formatTimestamp(latestTimeStamp: string): string {
-    const date = new Date(latestTimeStamp);
-
-    const day: string = String(date.getUTCDate()).padStart(2, '0');
-    const month: string = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const year: number = date.getUTCFullYear();
-
-    let hours: number = date.getUTCHours();
-    const minutes: string = String(date.getUTCMinutes()).padStart(2, '0');
-    const isAM: boolean = hours < 12;
-    const period: string = isAM ? 'AM' : 'PM';
-
-    if (hours === 0) {
-        hours = 12;
-    } else if (hours > 12) {
-        hours -= 12;
-    }
-    const formattedHours: string = String(hours).padStart(2, '0');
-
-    const timeZoneOffset: number = date.getTimezoneOffset() / 60;
-    const timeZone: string = `GMT${timeZoneOffset > 0 ? '-' : '+'}${Math.abs(timeZoneOffset)}`;
-
-    return `${day}/${month}/${year} ${formattedHours}:${minutes} ${period} (${timeZone})`;
+/* LeftSideNavbar.css */
+.left-navbar {
+    width: 250px;
+    height: 100vh; /* Full viewport height */
+    background-color: #333; /* Background color */
+    position: sticky; /* Make it sticky */
+    top: 0; /* Stick to the top */
+    left: 0; /* Stick to the left */
+    padding-top: 20px;
+    overflow-y: auto; /* Scroll if content overflows */
 }
 
-const input: string = "2024-04-10T11:40:32";
-console.log(formatTimestamp(input));
+.left-navbar ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.left-navbar li {
+    padding: 15px 20px;
+}
+
+.left-navbar a {
+    color: white;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.3s;
+}
+
+.left-navbar a:hover {
+    background-color: #575757; /* Hover effect */
+}
