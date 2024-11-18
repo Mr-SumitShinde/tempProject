@@ -1,4 +1,8 @@
 .left-navbar {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
     width: 250px;
     height: 100vh;
     background-color: #333;
@@ -7,25 +11,30 @@
     left: 0;
     padding-top: 20px;
     overflow-y: auto;
-}
 
-.left-navbar ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
+    ul {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
 
-.left-navbar li {
-    padding: 15px 20px;
-}
+        li {
+            width: 100%;
+            padding: 15px 20px;
 
-.left-navbar a {
-    color: white;
-    text-decoration: none;
-    display: block;
-    transition: background-color 0.3s;
-}
+            a {
+                color: white;
+                text-decoration: none;
+                display: block;
+                width: 100%;
+                transition: background-color 0.3s;
 
-.left-navbar a:hover {
-    background-color: #575757;
+                &:hover {
+                    background-color: #575757;
+                }
+            }
+        }
+    }
 }
