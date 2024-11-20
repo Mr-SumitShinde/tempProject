@@ -1,40 +1,58 @@
-.left-navbar {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-    width: 250px;
-    height: 100vh;
-    background-color: #333;
-    position: sticky;
-    top: 0;
-    left: 0;
-    padding-top: 20px;
-    overflow-y: auto;
+import { useEffect, useState } from 'react';
 
-    ul {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        list-style-type: none;
-        padding: 0;
-        margin: 0;
+const YourComponent = ({ caseDetailsData }) => {
+  const [clientDetails, setClientDetails] = useState({});
+  const [caseStatus, setCaseStatus] = useState('');
+  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState(null); // Error state
 
-        li {
-            width: 100%;
-            padding: 15px 20px;
+  useEffect(() => {
+    setLoading(true); // Start loading
+    setError(null); // Reset error state
 
-            a {
-                color: white;
-                text-decoration: none;
-                display: block;
-                width: 100%;
-                transition: background-color 0.3s;
+    try {
+      const cdTempData = caseDetailsData?.data?.attributes?.caseDetails;
 
-                &:hover {
-                    background-color: #575757;
-                }
-            }
-        }
+      if (cdTempData) {
+        setCaseStatus(cdTempData['status']);
+
+        const cdata = {
+          'Client name': `${cdTempData['firstName']} ${cdTempData['lastName']}` || '',
+          'Date of birth': cdTempData['dateOfBirth'] || '',
+          'Country of residence': cdTempData['countryOfResidence'] || '',
+          'Email address': cdTempData['mail'] || '',
+          'Client reference No.': cdTempData['customerReferenceId'] || '',
+          'Request No.': cdTempData['caseId'] || '',
+          Status: cdTempData['status'] || '',
+          'Internal notes': cdTempData['notes'] || '',
+        };
+
+        setClientDetails(cdata);
+      } else {
+        throw new Error('Case details data is missing or incomplete.');
+      }
+    } catch (err) {
+      setError(err.message); // Set error message
+    } finally {
+      setLoading(false); // Stop loading
     }
-}
+  }, [caseDetailsData]);
+
+  return (
+    <div>
+      {loading ? (
+        <p>Loading...</p>
+      ) : error ? (
+        <p style={{ color: 'red' }}>Error: {error}</p> // Display error message
+      ) : (
+        <div>
+          <h1>Case Status: {caseStatus}</h1>
+          {/* Render clientDetails */}
+          <pre>{JSON.stringify(clientDetails, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default YourComponent;
