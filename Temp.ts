@@ -1,21 +1,20 @@
-import React from 'react';
+/**
+ * Formats the given date into a readable string.
+ * @param {Date} inputDate - The date to format. Defaults to the current date if not provided.
+ * @returns {string} - Formatted date and time string.
+ */
+export const formattedDate = (inputDate?: Date): string => {
+  const currentDate = inputDate || new Date();
 
-type LoaderProps = {
-  loading: boolean;
-  error: string | null;
-  children: React.ReactNode;
+  const date = currentDate.toLocaleDateString();
+
+  const time = currentDate.toLocaleTimeString('en-GB', {
+    hour: 'numeric',
+    minute: 'numeric',
+    timeZoneName: 'short',
+  });
+
+  const timeSplit = time.split(/(?=GMT)/g);
+
+  return `${date} at ${timeSplit[0].trim()} (${timeSplit[1].trim()})`;
 };
-
-const WithLoader: React.FC<LoaderProps> = ({ loading, error, children }) => {
-  if (loading) {
-    return <div>Loading...</div>; // Replace with your loading spinner component
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>; // Customize the error message
-  }
-
-  return <>{children}</>;
-};
-
-export default WithLoader;
