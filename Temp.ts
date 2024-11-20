@@ -1,20 +1,14 @@
-/**
- * Formats the given date into a readable string.
- * @param {Date} inputDate - The date to format. Defaults to the current date if not provided.
- * @returns {string} - Formatted date and time string.
- */
-export const formattedDate = (inputDate?: Date): string => {
-  const currentDate = inputDate || new Date();
+import { formattedDate } from './date-utils';
 
-  const date = currentDate.toLocaleDateString();
-
-  const time = currentDate.toLocaleTimeString('en-GB', {
-    hour: 'numeric',
-    minute: 'numeric',
-    timeZoneName: 'short',
+describe('formattedDate', () => {
+  it('should format the current date and time if no input is provided', () => {
+    const result = formattedDate();
+    expect(result).toContain('at'); // Simple check to ensure the format is correct
   });
 
-  const timeSplit = time.split(/(?=GMT)/g);
-
-  return `${date} at ${timeSplit[0].trim()} (${timeSplit[1].trim()})`;
-};
+  it('should format a given date correctly', () => {
+    const testDate = new Date('2024-11-20T10:30:00Z');
+    const result = formattedDate(testDate);
+    expect(result).toBe('20/11/2024 at 10:30 (GMT)');
+  });
+});
