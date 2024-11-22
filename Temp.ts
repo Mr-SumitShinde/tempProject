@@ -1,18 +1,41 @@
-$Outlook = New-Object -ComObject Outlook.Application
-$Mail = $Outlook.CreateItem(0)
+import React from "react";
 
-# Subject
-$Mail.Subject = "Your Pre-designed Email Template"
+const DownloadPDF: React.FC = () => {
+  const handleDownload = async () => {
+    try {
+      // Perform the fetch request
+      const response = await fetch("https://example.com/api/pdf", {
+        method: "GET", // Or POST, based on your API
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-# Rich HTML Content
-$Mail.HTMLBody = @"
-<div style="font-family: Arial, sans-serif; color: #333;">
-    <h1 style="color: #2A9D8F;">Hello,</h1>
-    <p>This is a <b>rich HTML email</b> template with styled text and an image:</p>
-    <img src="https://via.placeholder.com/150" alt="Sample Image" style="margin: 10px 0;">
-    <p>Thanks,<br>Your Team</p>
-</div>
-"@
+      if (!response.ok) {
+        throw new Error("Failed to fetch PDF");
+      }
 
-$Mail.To = "recipient@example.com"
-$Mail.Display()
+      const result = await response.json();
+      const pdfFile = result.data.attribute.file;
+
+      // Convert the file data into a Blob object
+      const blob = new Blob([pdfFile], { type: "application/pdf" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "downloaded-file.pdf"; // Specify the desired filename
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading the PDF:", error);
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={handleDownload}>Download PDF</button>
+    </div>
+  );
+};
+
+export default DownloadPDF;
