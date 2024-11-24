@@ -1,10 +1,32 @@
-import { valpreAPIGet } from 'valpre-api-services';
+import React from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 
-jest.mock('valpre-api-services', () => ({
-  valpreAPIGet: jest.fn(() => Promise.reject(new Error('new error'))),
-}));
+function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+  return (
+    <div role="alert">
+      <p>Something went wrong:</p>
+      <pre>{error.message}</pre>
+      <button onClick={resetErrorBoundary}>Try again</button>
+    </div>
+  );
+}
 
+function MyComponent() {
+  throw new Error('Test error'); // Simulated error
+  return <div>My Component</div>;
+}
 
-import * as ValpreAPI from 'valpre-api-services';
+function App() {
+  return (
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onReset={() => {
+        // Reset application state if needed
+      }}
+    >
+      <MyComponent />
+    </ErrorBoundary>
+  );
+}
 
-jest.spyOn(ValpreAPI, 'valpreAPIGet').mockImplementation(() => Promise.reject(new Error('new error')));
+export default App;
