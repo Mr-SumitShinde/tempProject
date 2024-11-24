@@ -4,10 +4,10 @@ import { ErrorHeader } from './ErrorHeader';
 import { HeroAlert, Button, Icon, Type } from '@barclays/blueprint-react';
 
 jest.mock('@barclays/blueprint-react', () => ({
-  HeroAlert: jest.fn(({ children }) => <div data-testid="hero-alert">{children}</div>),
-  Button: jest.fn(({ children }) => <button>{children}</button>),
+  HeroAlert: jest.fn(({ children }: { children: React.ReactNode }) => <div data-testid="hero-alert">{children}</div>),
+  Button: jest.fn(({ children }: { children: React.ReactNode }) => <button>{children}</button>),
   Icon: jest.fn(() => <span data-testid="icon" />),
-  Type: jest.fn(({ children }) => <div>{children}</div>)
+  Type: jest.fn(({ children }: { children: React.ReactNode }) => <div>{children}</div>)
 }));
 
 describe('ErrorHeader', () => {
