@@ -1,17 +1,20 @@
-const fetchData = async () => {
-  setLoading(true);
-
-  valpreAPIGet(`${baseurl}/refData?flowId=PBIDV`)
+const postCaseDetails = async (requestOptions: any) => {
+  valpreAPIPost('/pbwm/apis/identityVerification/idv', requestOptions)
     .then(response => {
-      const processedRefData = processRefData(response);
-      setData(processedRefData);
+      const caseId = response?.data?.attributes?.caseId;
+      setCaseId(caseId);
+      navigate(routes?.createDetails, {
+        caseRef: caseId,
+        newCase: true,
+        state: {
+          status: 'CASE CREATED',
+          caseInfo: {},
+        },
+      });
     })
-    .catch(err => {
-      setContextError((err as Error).message);
-    })
-    .finally(() => {
-      setLoading(false);
+    .catch(error => {
+      window.scrollTo(0, 0);
+      setErrorFlag(true);
+      console.error('Error posting data', error);
     });
 };
-
-fetchData();
