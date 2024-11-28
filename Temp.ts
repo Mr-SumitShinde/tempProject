@@ -1,16 +1,17 @@
-function getValueByKey(array, inputKey) {
-  const foundItem = array.find(item => item.key === inputKey);
-  return foundItem ? foundItem.text : null; // Return text if found, otherwise return null
-}
+const fetchData = async () => {
+  setLoading(true);
 
-// Example usage
-const data = [
-  { key: 'IMN', text: 'Isle of Man' },
-  { key: 'GBR', text: 'United Kingdom of Great Brit' },
-  { key: 'JEY', text: 'Jersey' },
-  { key: 'GGY', text: 'Guernsey' }
-];
+  valpreAPIGet(`${baseurl}/refData?flowId=PBIDV`)
+    .then(response => {
+      const processedRefData = processRefData(response);
+      setData(processedRefData);
+    })
+    .catch(err => {
+      setContextError((err as Error).message);
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+};
 
-const inputKey = 'JEY';
-const result = getValueByKey(data, inputKey);
-console.log(result); // Output: Jersey
+fetchData();
