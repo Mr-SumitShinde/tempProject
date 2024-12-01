@@ -48,19 +48,34 @@ const DocxViewer = () => {
             bottom: "auto",
             marginRight: "-50%",
             transform: "translate(-50%, -50%)",
+            width: "80%", // Set modal width
+            height: "70%", // Set modal height
+            overflow: "hidden", // Ensure the modal itself does not scroll
           },
         }}
       >
-        <button onClick={closeModal}>Close</button>
-        {docContent ? (
-          <div
-            ref={(el) => {
-              if (el) el.appendChild(docContent); // Append rendered content to modal
-            }}
-          />
-        ) : (
-          <p>Loading document...</p>
-        )}
+        <button onClick={closeModal} style={{ marginBottom: "10px" }}>
+          Close
+        </button>
+        <div
+          style={{
+            height: "calc(100% - 40px)", // Adjust for button height
+            overflowY: "auto", // Enable vertical scrolling
+            padding: "10px",
+            border: "1px solid #ccc",
+            backgroundColor: "#f9f9f9",
+          }}
+        >
+          {docContent ? (
+            <div
+              ref={(el) => {
+                if (el) el.appendChild(docContent); // Append rendered content to modal
+              }}
+            />
+          ) : (
+            <p>Loading document...</p>
+          )}
+        </div>
       </Modal>
     </div>
   );
