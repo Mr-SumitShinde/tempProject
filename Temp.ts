@@ -20,7 +20,7 @@ const DocxViewer = () => {
       const arrayBuffer = await response.arrayBuffer();
       const container = document.createElement("div");
 
-      // Use docx-preview to render the document
+      // Render the document into a container
       await renderAsync(arrayBuffer, container);
       setDocContent(container);
     } catch (error) {
@@ -31,6 +31,28 @@ const DocxViewer = () => {
   const closeModal = () => {
     setModalIsOpen(false);
     setDocContent(null); // Clear content when modal is closed
+  };
+
+  const copyToClipboard = () => {
+    if (!docContent) {
+      alert("Document not loaded yet.");
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(docContent); // Select the content of the rendered document
+    const selection = window.getSelection();
+    selection.removeAllRanges(); // Clear existing selections
+    selection.addRange(range);
+
+    try {
+      const successful = document.execCommand("copy");
+      alert(successful ? "Document copied to clipboard!" : "Failed to copy.");
+    } catch (err) {
+      console.error("Error copying to clipboard:", err);
+    } finally {
+      selection.removeAllRanges(); // Clear selection
+    }
   };
 
   return (
@@ -48,19 +70,22 @@ const DocxViewer = () => {
             bottom: "auto",
             marginRight: "-50%",
             transform: "translate(-50%, -50%)",
-            width: "80%", // Set modal width
-            height: "70%", // Set modal height
-            overflow: "hidden", // Ensure the modal itself does not scroll
+            width: "80%",
+            height: "70%",
+            overflow: "hidden",
           },
         }}
       >
         <button onClick={closeModal} style={{ marginBottom: "10px" }}>
           Close
         </button>
+        <button onClick={copyToClipboard} style={{ marginBottom: "10px" }}>
+          Copy to Clipboard
+        </button>
         <div
           style={{
-            height: "calc(100% - 40px)", // Adjust for button height
-            overflowY: "auto", // Enable vertical scrolling
+            height: "calc(100% - 40px)",
+            overflowY: "auto",
             padding: "10px",
             border: "1px solid #ccc",
             backgroundColor: "#f9f9f9",
