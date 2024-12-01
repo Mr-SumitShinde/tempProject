@@ -33,25 +33,19 @@ const DocxViewer = () => {
     setDocContent(null); // Clear content when modal is closed
   };
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (!docContent) {
       alert("Document not loaded yet.");
       return;
     }
 
-    const range = document.createRange();
-    range.selectNodeContents(docContent); // Select the content of the rendered document
-    const selection = window.getSelection();
-    selection.removeAllRanges(); // Clear existing selections
-    selection.addRange(range);
-
     try {
-      const successful = document.execCommand("copy");
-      alert(successful ? "Document copied to clipboard!" : "Failed to copy.");
-    } catch (err) {
-      console.error("Error copying to clipboard:", err);
-    } finally {
-      selection.removeAllRanges(); // Clear selection
+      const blob = new Blob([docContent.innerHTML], { type: "text/html" });
+      const clipboardItem = new ClipboardItem({ "text/html": blob });
+      await navigator.clipboard.write([clipboardItem]);
+      alert("Document copied to clipboard with images!");
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
     }
   };
 
