@@ -16,8 +16,10 @@ const App: React.FC = () => {
         throw new Error(`Error fetching the document: ${response.statusText}`);
       }
 
-      // Read the file as binary
+      // Read the file as an ArrayBuffer
       const arrayBuffer = await response.arrayBuffer();
+
+      // Convert ArrayBuffer to Uint8Array for PizZip
       const binaryData = new Uint8Array(arrayBuffer);
 
       // Use PizZip to unzip the file
