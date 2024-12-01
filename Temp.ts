@@ -1,34 +1,19 @@
-const handleGenLink = async () => {
-  if (casestatus === 'REVIEW' || casestatus === 'APPROVED') {
-    const url = `${baseurl}/${caseDetailsData?.data?.attributes?.caseDetails?.caseId}/documents`;
+import React from "react";
 
-    valpreAPIGet(url, requestOptions)
-      .then(async (response) => {
-        await setReportData(response);
-        await pdfGenerator(
-          response?.data?.attributes?.file,
-          caseDetailsData?.data?.attributes?.caseDetails?.caseId
-        );
-      })
-      .catch((error) => {
-        window.scrollTo(0, 0);
-        setErrorFlag(true);
-        console.error('Error downloading PDF file', error);
-        throw error;
-      });
-  } else {
-    const queryParams = { refreshStatus: 'Y', generateLink: 'Y' };
-    const url = urlGen(queryParams);
+const DocumentPreview = () => {
+  const handlePreviewClick = () => {
+    // Replace 'sample.doc' with the actual path or URL of your document
+    const documentUrl = "/path/to/sample.doc";
 
-    valpreAPIGet(url, requestOptions)
-      .then(async (response) => {
-        await setCaseDetailsData(response);
-        setGenlinkFlag(true);
-        window.scrollTo(0, document.body.scrollHeight);
-      })
-      .catch((error) => {
-        console.error('Error fetching data', error);
-        setErrorFlag(true);
-      });
-  }
+    // Open in a new tab
+    window.open(documentUrl, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <button onClick={handlePreviewClick}>
+      Open Document Preview
+    </button>
+  );
 };
+
+export default DocumentPreview;
