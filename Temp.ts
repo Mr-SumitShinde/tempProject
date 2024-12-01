@@ -1,69 +1,48 @@
-import React, { useState } from 'react';
-import Modal from 'react-modal';
-import PizZip from 'pizzip';
-import Docxtemplater from 'docxtemplater';
+import React, { useState } from "react";
+import Modal from "react-modal";
+import { renderAsync } from "docx-preview";
 
-Modal.setAppElement('#root');
+const DocxViewer = () => {
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [docContainer, setDocContainer] = useState(null);
 
-const App: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [docxContent, setDocxContent] = useState<string>('');
+  const openModal = async () => {
+    setModalIsOpen(true);
+    const response = await fetch("/path/to/sample.docx");
+    const arrayBuffer = await response.arrayBuffer();
 
-  const loadDocxFromAssets = async () => {
-    try {
-      const response = await fetch('/assets/sample.docx'); // Path to your .docx file
-      if (!response.ok) {
-        throw new Error(`Error fetching the document: ${response.statusText}`);
-      }
-
-      // Read the file as an ArrayBuffer
-      const arrayBuffer = await response.arrayBuffer();
-
-      // Convert ArrayBuffer to Uint8Array for PizZip
-      const binaryData = new Uint8Array(arrayBuffer);
-
-      // Use PizZip to unzip the file
-      const zip = new PizZip(binaryData);
-
-      // Use Docxtemplater to parse the document
-      const doc = new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-      });
-
-      // Render the content of the .docx file
-      const text = doc.getFullText();
-      setDocxContent(text);
-      setIsModalOpen(true);
-    } catch (error) {
-      console.error('Error loading DOCX file:', error);
-      alert('Failed to load the DOCX file. Please check the console for details.');
-    }
+    const container = document.createElement("div");
+    renderAsync(arrayBuffer, container).catch((err) => console.error(err));
+    setDocContainer(container);
   };
 
-  const closeModal = () => setIsModalOpen(false);
+  const closeModal = () => {
+    setModalIsOpen(false);
+  };
 
   return (
     <div>
-      <h1>Display DOCX in Modal</h1>
-      <button onClick={loadDocxFromAssets}>Open DOCX</button>
+      <button onClick={openModal}>Open DOCX File</button>
       <Modal
-        isOpen={isModalOpen}
+        isOpen={modalIsOpen}
         onRequestClose={closeModal}
-        contentLabel="Document Preview"
+        contentLabel="DOCX Viewer"
         style={{
-          content: { maxWidth: '80%', margin: 'auto', padding: '20px' },
+          content: {
+            top: "50%",
+            left: "50%",
+            right: "auto",
+            bottom: "auto",
+            marginRight: "-50%",
+            transform: "translate(-50%, -50%)",
+          },
         }}
       >
-        <button onClick={closeModal} style={{ float: 'right' }}>
-          Close
-        </button>
-        <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
-          {docxContent}
-        </pre>
+        <button onClick={closeModal}>Close</button>
+        <div dangerouslySetInnerHTML={{ __html: docContainer?.outerHTML }} />
       </Modal>
     </div>
   );
 };
 
-export default App;
+export default DocxViewer;
