@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Modal from 'react-modal';
-import mammoth from 'mammoth';
+import PizZip from 'pizzip';
+import Docxtemplater from 'docxtemplater';
 
 Modal.setAppElement('#root');
 
@@ -10,17 +11,31 @@ const App: React.FC = () => {
 
   const loadDocxFromAssets = async () => {
     try {
-      const response = await fetch('/assets/sample.docx'); // Path to the file in the public folder
+      const response = await fetch('/assets/sample.docx'); // Path to your .docx file
       if (!response.ok) {
         throw new Error(`Error fetching the document: ${response.statusText}`);
       }
 
+      // Read the file as binary
       const arrayBuffer = await response.arrayBuffer();
-      const result = await mammoth.convertToHtml({ arrayBuffer });
-      setDocxContent(result.value);
+      const binaryData = new Uint8Array(arrayBuffer);
+
+      // Use PizZip to unzip the file
+      const zip = new PizZip(binaryData);
+
+      // Use Docxtemplater to parse the document
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+      });
+
+      // Render the content of the .docx file
+      const text = doc.getFullText();
+      setDocxContent(text);
       setIsModalOpen(true);
     } catch (error) {
       console.error('Error loading DOCX file:', error);
+      alert('Failed to load the DOCX file. Please check the console for details.');
     }
   };
 
@@ -41,7 +56,9 @@ const App: React.FC = () => {
         <button onClick={closeModal} style={{ float: 'right' }}>
           Close
         </button>
-        <div dangerouslySetInnerHTML={{ __html: docxContent }} />
+        <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+          {docxContent}
+        </pre>
       </Modal>
     </div>
   );
