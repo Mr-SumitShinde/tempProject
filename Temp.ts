@@ -1,98 +1,36 @@
-import React, { useState } from "react";
-import Modal from "react-modal";
-import { renderAsync } from "docx-preview";
+import React from 'react';
+import mammoth from 'mammoth';
 
-Modal.setAppElement("#root");
-
-const DocxViewer = () => {
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [docContent, setDocContent] = useState(null);
-
-  const openModal = async () => {
-    setModalIsOpen(true);
-
+const CopyDocxContent: React.FC = () => {
+  const handleCopyContent = async () => {
     try {
-      const response = await fetch("/sample.docx");
+      const filePath = `${process.env.PUBLIC_URL}/assets/sample.docx`;
+
+      // Fetch the .docx file
+      const response = await fetch(filePath);
       if (!response.ok) {
-        throw new Error("Failed to fetch the document");
+        throw new Error('Could not fetch the document');
       }
-
       const arrayBuffer = await response.arrayBuffer();
-      const container = document.createElement("div");
 
-      // Render the document content
-      await renderAsync(arrayBuffer, container);
-      setDocContent(container.innerHTML); // Save the HTML content
+      // Extract the text and images from the .docx file
+      const { value: extractedContent } = await mammoth.extractRawText({ arrayBuffer });
+
+      // Copy the content to the clipboard
+      navigator.clipboard.writeText(extractedContent).then(() => {
+        alert('Document content copied to clipboard!');
+      });
     } catch (error) {
-      console.error("Error loading document:", error);
-    }
-  };
-
-  const closeModal = () => {
-    setModalIsOpen(false);
-    setDocContent(null); // Clear the content on close
-  };
-
-  const copyToClipboard = async () => {
-    if (!docContent) {
-      alert("Document content not loaded yet.");
-      return;
-    }
-
-    try {
-      // Copy the rendered HTML content to the clipboard
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          "text/html": new Blob([docContent], { type: "text/html" }),
-        }),
-      ]);
-      alert("Document content copied to clipboard!");
-    } catch (error) {
-      console.error("Failed to copy content:", error);
-      alert("Failed to copy content.");
+      console.error('Error processing document:', error);
+      alert('Failed to copy document content. Check the console for details.');
     }
   };
 
   return (
     <div>
-      <button onClick={openModal}>Open DOCX File</button>
-      <Modal
-        isOpen={modalIsOpen}
-        onRequestClose={closeModal}
-        contentLabel="DOCX Viewer"
-        style={{
-          content: {
-            top: "50%",
-            left: "50%",
-            right: "auto",
-            bottom: "auto",
-            marginRight: "-50%",
-            transform: "translate(-50%, -50%)",
-            width: "80%",
-            height: "70%",
-            overflow: "hidden",
-          },
-        }}
-      >
-        <button onClick={closeModal} style={{ marginBottom: "10px" }}>
-          Close
-        </button>
-        <button onClick={copyToClipboard} style={{ marginBottom: "10px" }}>
-          Copy to Clipboard
-        </button>
-        <div
-          style={{
-            height: "calc(100% - 40px)",
-            overflowY: "auto",
-            padding: "10px",
-            border: "1px solid #ccc",
-            backgroundColor: "#f9f9f9",
-          }}
-          dangerouslySetInnerHTML={{ __html: docContent }}
-        />
-      </Modal>
+      <button onClick={handleCopyContent}>Copy Document Content</button>
     </div>
   );
 };
 
-export default DocxViewer;
+export default CopyDocxContent;
