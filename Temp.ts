@@ -1,13 +1,24 @@
-import React, { useRef } from 'react';
+import React from 'react';
 
-interface ModalRef {
-  open: () => void;
-  close: () => void;
-}
+const DownloadEmailTemplate: React.FC = () => {
+  const handleDownload = () => {
+    // Construct the file URL
+    const fileUrl = `${process.env.PUBLIC_URL}/assets/email-template.html`;
 
-const Component = () => {
-  // Use null instead of undefined
-  const modalRef = useRef<ModalRef | null>(null);
+    // Create a temporary anchor element
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = 'email-template.html'; // Specify the downloaded file name
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-  return <Modal ref={modalRef} />;
+  return (
+    <div>
+      <button onClick={handleDownload}>Download Email Template</button>
+    </div>
+  );
 };
+
+export default DownloadEmailTemplate;
