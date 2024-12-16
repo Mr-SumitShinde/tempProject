@@ -1,28 +1,17 @@
 import React from 'react';
 
-interface TableBodyProps<T> {
-  data: T[];
-  headers: Array<{ datakey: keyof T; alignment?: 'left' | 'center' | 'right'; render?: (item: T) => JSX.Element }>;
+interface TableHeaderProps<T> {
+  headers: Array<{ title: string; alignment?: 'left' | 'center' | 'right' }>;
 }
 
-export const TableBody = <T,>({ data, headers }: TableBodyProps<T>) => (
-  <tbody>
-    {data.length > 0 ? (
-      data.map((item, rowIndex) => (
-        <tr key={rowIndex}>
-          {headers.map((header, colIndex) => (
-            <td key={colIndex} style={{ textAlign: header.alignment || 'left' }}>
-              {header.render ? header.render(item) : item[header.datakey]?.toString()}
-            </td>
-          ))}
-        </tr>
-      ))
-    ) : (
-      <tr>
-        <td colSpan={headers.length} style={{ textAlign: 'center' }}>
-          No data available
-        </td>
-      </tr>
-    )}
-  </tbody>
+export const TableHeader = <T,>({ headers }: TableHeaderProps<T>) => (
+  <thead>
+    <tr>
+      {headers.map((header, index) => (
+        <th key={index} style={{ textAlign: header.alignment || 'left' }}>
+          {header.title}
+        </th>
+      ))}
+    </tr>
+  </thead>
 );
