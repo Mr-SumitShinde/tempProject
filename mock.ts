@@ -1,22 +1,11 @@
-const App = () => {
-  const [currentPage, setCurrentPage] = React.useState('home');
+import React from "react";
+import SwaggerUI from "swagger-ui-react";
+import "swagger-ui-react/swagger-ui.css";
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'home':
-        return <Home />;
-      case 'about':
-        return <About />;
-      default:
-        return <NotFound />;
-    }
-  };
-
+const ApiDemo = () => {
   return (
-    <div>
-      <button onClick={() => setCurrentPage('home')}>Home</button>
-      <button onClick={() => setCurrentPage('about')}>About</button>
-      {renderPage()}
-    </div>
+    <SwaggerUI url="/swagger.json" />
   );
 };
+
+export default ApiDemo;
