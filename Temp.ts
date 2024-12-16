@@ -1,17 +1,12 @@
 import React from 'react';
+import { PaginationSimple } from '@barclays/blueprint-react';
 
-interface TableHeaderProps<T> {
-  headers: Array<{ title: string; alignment?: 'left' | 'center' | 'right' }>;
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
-export const TableHeader = <T,>({ headers }: TableHeaderProps<T>) => (
-  <thead>
-    <tr>
-      {headers.map((header, index) => (
-        <th key={index} style={{ textAlign: header.alignment || 'left' }}>
-          {header.title}
-        </th>
-      ))}
-    </tr>
-  </thead>
+export const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) => (
+  <PaginationSimple active={currentPage} total={totalPages} onButtonClick={onPageChange} />
 );
