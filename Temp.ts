@@ -1,39 +1,58 @@
-import { useState } from 'react';
-import { valpreAPIGet } from '@barclays/valpre-api-services';
+import React, { useState, useEffect } from 'react';
+import { useFetchData } from './useFetchData';
+import { TableHeader } from './TableHeader';
+import { TableBody } from './TableBody';
+import { Pagination } from './Pagination';
+import { Box, Loading, Alert, Type } from '@barclays/blueprint-react';
 
-export function useFetchData<T>(
-  baseUrl: string,
-  createQueryParams: (page: number, offset: number) => string,
-  pageSize: number,
-  extractDataFromResponse: (response: any) => T[],
-  extractTotalRecordsFromResponse: (response: any) => number,
-  extractTimeFromResponse?: (response: any) => string
-) {
-  const [data, setData] = useState<T[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [time, setTime] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setLoading] = useState(false);
+export function ValpreReactDataTable<T extends object>({
+  baseUrl,
+  createQueryParams,
+  headers,
+  pageSize = 25,
+  extractDataFromResponse,
+  extractTotalRecordsFromResponse,
+  extractTimeFromResponse,
+}: any) {
+  const { data, totalCount, time, error, isLoading, fetchData } = useFetchData(
+    baseUrl,
+    createQueryParams,
+    pageSize,
+    extractDataFromResponse,
+    extractTotalRecordsFromResponse,
+    extractTimeFromResponse
+  );
 
-  const fetchData = async (page: number) => {
-    setLoading(true);
-    setError(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-    const offset = pageSize;
-    const queryParams = createQueryParams(page, offset);
-    const url = baseUrl.includes('?') ? `${baseUrl}&${queryParams}` : `${baseUrl}?${queryParams}`;
+  useEffect(() => {
+    fetchData(currentPage);
+  }, [currentPage]);
 
-    try {
-      const response = await valpreAPIGet(url);
-      setData(extractDataFromResponse(response));
-      setTotalCount(extractTotalRecordsFromResponse(response));
-      if (extractTimeFromResponse) setTime(extractTimeFromResponse(response));
-    } catch (err) {
-      setError('Failed to fetch data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const totalPages = Math.ceil(totalCount / pageSize);
 
-  return { data, totalCount, time, error, isLoading, fetchData };
+  if (isLoading)
+    return (
+      <Box centered>
+        <Loading />
+      </Box>
+    );
+
+  if (error)
+    return (
+      <Alert variant="error" head={<Type>Failed to load data</Type>}>
+        {error}
+      </Alert>
+    );
+
+  return (
+    <Box>
+      <table>
+        <TableHeader headers={headers} />
+        <TableBody data={data} headers={headers} />
+      </table>
+      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      <Type>{`Showing ${data.length} of ${totalCount} records ${time ? `as of ${time}` : ''}`}</Type>
+    </Box>
+  );
 }
