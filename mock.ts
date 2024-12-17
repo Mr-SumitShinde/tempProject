@@ -1,18 +1,5 @@
-{showSearch && (
-  <SmartSearch
-    value={searchInput}
-    onSearchChange={(value) => {
-      setSearchQuery(value);
-      setCurrentPage(1);
-    }}
-    placeholder="Search..."
-    debounceDelay={500}
-  />
-)}
-
-
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useDebounce } from './useDebounce';
 
 interface SmartSearchProps {
   value: string;
@@ -27,25 +14,39 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
   placeholder = 'Search...',
   debounceDelay = 500,
 }) => {
-  const [inputValue, setInputValue] = useState<string>(value);
+  const debouncedValue = useDebounce(value, debounceDelay);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      onSearchChange(inputValue);
-    }, debounceDelay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [inputValue, debounceDelay, onSearchChange]);
+  React.useEffect(() => {
+    onSearchChange(debouncedValue);
+  }, [debouncedValue, onSearchChange]);
 
   return (
     <input
       type="text"
-      value={inputValue}
-      onChange={(e) => setInputValue(e.target.value)}
+      value={value}
+      onChange={(e) => onSearchChange(e.target.value)}
       placeholder={placeholder}
-      style={{ marginBottom: '10px', padding: '5px', width: '100%' }}
+      style={{
+        marginBottom: '10px',
+        padding: '5px',
+        border: '1px solid #ccc',
+        borderRadius: '4px',
+        width: '100%',
+      }}
     />
   );
 };
+
+
+{showSearch && (
+  <SmartSearch
+    value={searchInput}
+    onSearchChange={(value) => {
+      setSearchInput(value);
+      setSearchQuery(value); // Update search query for API
+      setCurrentPage(1);
+    }}
+    placeholder="Search..."
+    debounceDelay={500}
+  />
+)}
