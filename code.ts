@@ -1,19 +1,110 @@
-<ValpreReactDataTable
-  baseUrl="http://localhost:4000/data"
-  createQueryParams={(page, offset, sortKey, sortDirection, searchQuery) =>
-    `page=${page}&offset=${offset}&sortKey=${sortKey || ''}&sortDirection=${sortDirection || ''}&search=${searchQuery || ''}`
-  }
-  headers={[
-    { title: 'Name', datakey: 'name', alignment: 'left', sortable: true },
-    { title: 'Email', datakey: 'email', alignment: 'center', sortable: true },
-    { title: 'Status', datakey: 'status', alignment: 'right', sortable: false },
-    { title: 'SSID', datakey: 'ssid', alignment: 'right', sortable: true },
-    { title: 'ARNUM', datakey: 'arnum', alignment: 'right', sortable: true },
-  ]}
-  pageSize={10}
-  defaultSortKey="name"
-  defaultSortDirection="asc"
-  extractDataFromResponse={(response) => response.data}
-  extractTotalRecordsFromResponse={(response) => response.total}
-  extractTimeFromResponse={(response) => response.timestamp}
-/>
+Here’s the updated ValpreReactDataTable main file that integrates the SmartSearch component as a separate reusable component.
+
+
+---
+
+Updated ValpreReactDataTable.tsx
+
+import React, { useState, useEffect } from 'react';
+import { useFetchData } from './useFetchData';
+import { TableHeader } from './TableHeader';
+import { TableBody } from './TableBody';
+import { Pagination } from './Pagination';
+import { Box, Loading, Alert, Type } from '@barclays/blueprint-react';
+import { SmartSearch } from './SmartSearch';
+import { ValpreReactDataTableProps } from './interfaces';
+
+export function ValpreReactDataTable<T extends object>({
+  baseUrl,
+  createQueryParams,
+  headers,
+  pageSize = 25,
+  defaultSortKey,
+  defaultSortDirection = 'asc',
+  extractDataFromResponse,
+  extractTotalRecordsFromResponse,
+  extractTimeFromResponse,
+  onSortChange,
+  showSearch = true, // New prop to toggle SmartSearch visibility
+}: ValpreReactDataTableProps<T> & { showSearch?: boolean }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+
+  const {
+    data,
+    totalCount,
+    time,
+    error,
+    isLoading,
+    fetchData,
+    sortKey,
+    sortDirection,
+    updateSorting,
+    setSearchQuery,
+  } = useFetchData<T>({
+    baseUrl,
+    createQueryParams: (page, offset) =>
+      createQueryParams(page, offset, sortKey, sortDirection, searchInput),
+    pageSize,
+    extractDataFromResponse,
+    extractTotalRecordsFromResponse,
+    extractTimeFromResponse,
+    defaultSortKey,
+    defaultSortDirection,
+  });
+
+  useEffect(() => {
+    fetchData(currentPage);
+  }, [currentPage, sortKey, sortDirection, searchInput]);
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const handleSortChange = (key: string) => {
+    const newDirection = sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc';
+    updateSorting(key, newDirection);
+    if (onSortChange) {
+      onSortChange(key, newDirection);
+    }
+  };
+
+  const onPageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  return (
+    <Box>
+      {showSearch && (
+        <SmartSearch
+          value={searchInput}
+          onSearchChange={(value) => {
+            setSearchInput(value);
+            setCurrentPage(1);
+          }}
+          placeholder="Search..."
+          debounceDelay={500}
+        />
+      )}
+      {isLoading ? (
+        <Box centered>
+          <Loading />
+        </Box>
+      ) : error ? (
+        <Alert variant="error" head={<Type size="md" weight="medium">Failed to Load Data</Type>}>
+          {error}
+        </Alert>
+      ) : (
+        <>
+          <table>
+            <TableHeader
+              headers={headers}
+              onSortChange={handleSortChange}
+              sortKey={sortKey}
+              sortDirection={sortDirection}
+            />
+            <TableBody data={data} headers={headers} />
+          </table>
+          {totalCount > 0 && (
+            <Box style
+
