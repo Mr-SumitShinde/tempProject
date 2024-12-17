@@ -1,36 +1,37 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+interface SmartSearchProps {
+  value: string;
+  onSearchChange: (searchValue: string) => void;
+  placeholder?: string;
+  debounceDelay?: number;
+}
+
+export const SmartSearch: React.FC<SmartSearchProps> = ({
+  value,
+  onSearchChange,
+  placeholder = 'Search...',
+  debounceDelay = 500,
+}) => {
+  const [inputValue, setInputValue] = useState<string>(value);
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
+      onSearchChange(inputValue);
+    }, debounceDelay);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [value, delay]);
+  }, [inputValue, debounceDelay, onSearchChange]);
 
-  return debouncedValue;
-}
-
-
-
-const [searchInput, setSearchInput] = useState('');
-const debouncedSearchQuery = useDebounce(searchInput, 500);
-
-useEffect(() => {
-  setSearchQuery(debouncedSearchQuery);
-  setCurrentPage(1);
-}, [debouncedSearchQuery]);
-
-
-
-<Input
-  value={searchInput}
-  onChange={(event) => setSearchInput(event.target.value)}
-  placeholder="Search..."
-  style={{ marginBottom: '10px' }}
-/>
+  return (
+    <input
+      type="text"
+      value={inputValue}
+      onChange={(e) => setInputValue(e.target.value)}
+      placeholder={placeholder}
+      style={{ marginBottom: '10px', padding: '5px', width: '100%' }}
+    />
+  );
+};
