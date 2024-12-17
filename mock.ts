@@ -1,21 +1,118 @@
-<ValpreReactDataTable
-  baseUrl="http://localhost:4000/data"
-  createQueryParams={(page, offset, sortKey, sortDirection, searchQuery) =>
-    `page=${page}&offset=${offset}&sortKey=${sortKey || ''}&sortDirection=${sortDirection || ''}&search=${searchQuery || ''}`
+import React, { useState, useEffect } from 'react';
+import { useFetchData } from './useFetchData';
+import { TableHeader } from './TableHeader';
+import { TableBody } from './TableBody';
+import { Pagination } from './Pagination';
+import { Box, Loading, Alert, Type, Input } from '@barclays/blueprint-react';
+import { ValpreReactDataTableProps } from './interfaces';
+
+export function ValpreReactDataTable<T extends object>({
+  baseUrl,
+  createQueryParams,
+  headers,
+  pageSize = 25,
+  defaultSortKey,
+  defaultSortDirection = 'asc',
+  extractDataFromResponse,
+  extractTotalRecordsFromResponse,
+  extractTimeFromResponse,
+  onSortChange,
+}: ValpreReactDataTableProps<T>) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const {
+    data,
+    totalCount,
+    time,
+    error,
+    isLoading,
+    fetchData,
+    sortKey,
+    sortDirection,
+    updateSorting,
+    searchQuery,
+    setSearchQuery,
+  } = useFetchData<T>({
+    baseUrl,
+    createQueryParams: (page, offset) =>
+      createQueryParams(page, offset, sortKey, sortDirection, searchQuery),
+    pageSize,
+    extractDataFromResponse,
+    extractTotalRecordsFromResponse,
+    extractTimeFromResponse,
+    defaultSortKey,
+    defaultSortDirection,
+  });
+
+  useEffect(() => {
+    fetchData(currentPage);
+  }, [currentPage, sortKey, sortDirection, searchQuery]);
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const handleSortChange = (key: string) => {
+    const newDirection = sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc';
+    updateSorting(key, newDirection);
+    if (onSortChange) {
+      onSortChange(key, newDirection);
+    }
+  };
+
+  const onPageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1);
+  };
+
+  if (isLoading) {
+    return (
+      <Box centered>
+        <Loading />
+      </Box>
+    );
   }
-  headers={[
-    { title: 'Request No.', datakey: 'requestNo', alignment: 'left', sortable: true },
-    { title: 'Client Ref Id', datakey: 'clientRefId', alignment: 'center', sortable: true },
-    { title: 'Request Type', datakey: 'requestType', alignment: 'left', sortable: true },
-    { title: 'Client Name', datakey: 'clientName', alignment: 'left', sortable: true },
-    { title: 'Submitted by', datakey: 'submittedBy', alignment: 'left', sortable: true },
-    { title: 'Date Created', datakey: 'dateCreated', alignment: 'center', sortable: true },
-    { title: 'Status', datakey: 'status', alignment: 'center', sortable: true },
-  ]}
-  pageSize={10}
-  defaultSortKey="dateCreated"
-  defaultSortDirection="asc"
-  extractDataFromResponse={(response) => response.data}
-  extractTotalRecordsFromResponse={(response) => response.total}
-  extractTimeFromResponse={(response) => response.timestamp}
-/>
+
+  if (error) {
+    return (
+      <Alert variant="error" head={<Type size="md" weight="medium">Failed to Load Data</Type>}>
+        {error}
+      </Alert>
+    );
+  }
+
+  return (
+    <Box>
+      <Input
+        value={searchQuery}
+        onChange={handleSearchChange}
+        placeholder="Search..."
+        style={{ marginBottom: '10px' }}
+      />
+      <table>
+        <TableHeader
+          headers={headers}
+          onSortChange={handleSortChange}
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+        />
+        <TableBody data={data} headers={headers} />
+        {totalCount > 0 && (
+          <Box style={{ paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Type>
+              {`Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(
+                currentPage * pageSize,
+                totalCount
+              )} of ${totalCount} records${time ? ` as of ${time}` : ''}`}
+            </Type>
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
+          </Box>
+        )}
+      </table>
+    </Box>
+  );
+}
