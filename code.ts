@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   Center,
   VStack,
@@ -8,11 +9,21 @@ import {
   Button,
   HStack,
 } from "@chakra-ui/react";
-import React from "react";
+import certificateBg from "./assets/certificate-bg.jpg";
 
 const CertificatePage = () => {
-  const [userName, setUserName] = React.useState("");
-  const [previewPhoto, setPreviewPhoto] = React.useState(null);
+  const [userName, setUserName] = useState("");
+  const [previewPhoto, setPreviewPhoto] = useState(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  // Dynamically get the dimensions of the background image
+  useEffect(() => {
+    const img = new Image();
+    img.src = certificateBg;
+    img.onload = () => {
+      setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+  }, []);
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
@@ -22,7 +33,6 @@ const CertificatePage = () => {
   };
 
   const handleDownload = () => {
-    // Add your download logic here
     console.log("Downloading Certificate...");
   };
 
@@ -56,14 +66,14 @@ const CertificatePage = () => {
 
       <Box
         id="certificate-template"
-        w={["90%", "500px"]}
-        h={["200px", "300px"]}
+        w={`${dimensions.width}px`}
+        h={`${dimensions.height}px`}
         border="2px solid"
         borderColor="gray.300"
         p={4}
         position="relative"
         textAlign="center"
-        bgImage="url('your-certificate-background-url.jpg')"
+        bgImage={`url(${certificateBg})`}
         bgSize="cover"
         bgPos="center"
       >
@@ -101,7 +111,7 @@ const CertificatePage = () => {
           colorScheme="blue"
           size="lg"
           borderRadius="md"
-          isDisabled={!userName || !previewPhoto} // Disable if no name or image
+          isDisabled={!userName || !previewPhoto}
         >
           Download Certificate
         </Button>
