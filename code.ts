@@ -2,9 +2,10 @@ const handleDownload = async () => {
   const certificate = document.getElementById("certificate-template");
   if (!certificate) return;
 
+  const scale = window.devicePixelRatio || 2;
   const canvas = await html2canvas(certificate, {
-    scale: 2, // Increase resolution
-    useCORS: true, // Ensure cross-origin images load
+    scale: scale, // Match the device's pixel density
+    useCORS: true,
   });
 
   const dataURL = canvas.toDataURL("image/png");
