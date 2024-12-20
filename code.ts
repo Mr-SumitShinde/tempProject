@@ -36,3 +36,18 @@
     {userName || "Your Name Here"}
   </div>
 </div>
+
+
+top: 85px;
+
+left: 91px;
+
+width: 273px;
+
+✓ height:
+
+272px;
+
+border: 2px
+
+solid
