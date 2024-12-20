@@ -6,7 +6,9 @@ import {
   Box,
   Image,
   Button,
+  HStack,
 } from "@chakra-ui/react";
+import React from "react";
 
 const CertificatePage = () => {
   const [userName, setUserName] = React.useState("");
@@ -21,6 +23,12 @@ const CertificatePage = () => {
 
   const handleDownload = () => {
     // Add your download logic here
+    console.log("Downloading Certificate...");
+  };
+
+  const handleReset = () => {
+    setUserName("");
+    setPreviewPhoto(null);
   };
 
   return (
@@ -86,16 +94,27 @@ const CertificatePage = () => {
         </Text>
       </Box>
 
-      <Button
-        onClick={handleDownload}
-        mt={6}
-        variant="outline"
-        colorScheme="blue"
-        size="lg"
-        borderRadius="md"
-      >
-        Download Certificate
-      </Button>
+      <HStack mt={6} spacing={4}>
+        <Button
+          onClick={handleDownload}
+          variant="outline"
+          colorScheme="blue"
+          size="lg"
+          borderRadius="md"
+          isDisabled={!userName || !previewPhoto} // Disable if no name or image
+        >
+          Download Certificate
+        </Button>
+        <Button
+          onClick={handleReset}
+          variant="solid"
+          colorScheme="red"
+          size="lg"
+          borderRadius="md"
+        >
+          Reset
+        </Button>
+      </HStack>
     </Center>
   );
 };
