@@ -1,110 +1,103 @@
-Here’s the updated ValpreReactDataTable main file that integrates the SmartSearch component as a separate reusable component.
+import {
+  Center,
+  VStack,
+  Text,
+  Input,
+  Box,
+  Image,
+  Button,
+} from "@chakra-ui/react";
 
+const CertificatePage = () => {
+  const [userName, setUserName] = React.useState("");
+  const [previewPhoto, setPreviewPhoto] = React.useState(null);
 
----
-
-Updated ValpreReactDataTable.tsx
-
-import React, { useState, useEffect } from 'react';
-import { useFetchData } from './useFetchData';
-import { TableHeader } from './TableHeader';
-import { TableBody } from './TableBody';
-import { Pagination } from './Pagination';
-import { Box, Loading, Alert, Type } from '@barclays/blueprint-react';
-import { SmartSearch } from './SmartSearch';
-import { ValpreReactDataTableProps } from './interfaces';
-
-export function ValpreReactDataTable<T extends object>({
-  baseUrl,
-  createQueryParams,
-  headers,
-  pageSize = 25,
-  defaultSortKey,
-  defaultSortDirection = 'asc',
-  extractDataFromResponse,
-  extractTotalRecordsFromResponse,
-  extractTimeFromResponse,
-  onSortChange,
-  showSearch = true, // New prop to toggle SmartSearch visibility
-}: ValpreReactDataTableProps<T> & { showSearch?: boolean }) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-
-  const {
-    data,
-    totalCount,
-    time,
-    error,
-    isLoading,
-    fetchData,
-    sortKey,
-    sortDirection,
-    updateSorting,
-    setSearchQuery,
-  } = useFetchData<T>({
-    baseUrl,
-    createQueryParams: (page, offset) =>
-      createQueryParams(page, offset, sortKey, sortDirection, searchInput),
-    pageSize,
-    extractDataFromResponse,
-    extractTotalRecordsFromResponse,
-    extractTimeFromResponse,
-    defaultSortKey,
-    defaultSortDirection,
-  });
-
-  useEffect(() => {
-    fetchData(currentPage);
-  }, [currentPage, sortKey, sortDirection, searchInput]);
-
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  const handleSortChange = (key: string) => {
-    const newDirection = sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc';
-    updateSorting(key, newDirection);
-    if (onSortChange) {
-      onSortChange(key, newDirection);
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPreviewPhoto(URL.createObjectURL(file));
     }
   };
 
-  const onPageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
+  const handleDownload = () => {
+    // Add your download logic here
   };
 
   return (
-    <Box>
-      {showSearch && (
-        <SmartSearch
-          value={searchInput}
-          onSearchChange={(value) => {
-            setSearchInput(value);
-            setCurrentPage(1);
-          }}
-          placeholder="Search..."
-          debounceDelay={500}
+    <Center p={[4, 6]} flexDirection="column">
+      <VStack spacing={6} mb={6} w={["90%", "70%", "50%"]}>
+        <Text fontSize={["xl", "2xl"]} fontWeight="bold" textAlign="center">
+          Create Your Certificate
+        </Text>
+        <Input
+          placeholder="Enter your name"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+          size="lg"
+          variant="outline"
+          borderColor="blue.500"
         />
-      )}
-      {isLoading ? (
-        <Box centered>
-          <Loading />
-        </Box>
-      ) : error ? (
-        <Alert variant="error" head={<Type size="md" weight="medium">Failed to Load Data</Type>}>
-          {error}
-        </Alert>
-      ) : (
-        <>
-          <table>
-            <TableHeader
-              headers={headers}
-              onSortChange={handleSortChange}
-              sortKey={sortKey}
-              sortDirection={sortDirection}
-            />
-            <TableBody data={data} headers={headers} />
-          </table>
-          {totalCount > 0 && (
-            <Box style
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+          size="lg"
+          borderColor="blue.500"
+        />
+      </VStack>
 
+      <Box
+        id="certificate-template"
+        w={["90%", "500px"]}
+        h={["200px", "300px"]}
+        border="2px solid"
+        borderColor="gray.300"
+        p={4}
+        position="relative"
+        textAlign="center"
+        bgImage="url('your-certificate-background-url.jpg')"
+        bgSize="cover"
+        bgPos="center"
+      >
+        {previewPhoto && (
+          <Image
+            src={previewPhoto}
+            alt="Profile"
+            position="absolute"
+            top="20px"
+            left="20px"
+            w="80px"
+            h="80px"
+            borderRadius="full"
+            objectFit="cover"
+            border="2px solid"
+            borderColor="white"
+          />
+        )}
+        <Text
+          position="absolute"
+          bottom="20px"
+          left="50%"
+          transform="translateX(-50%)"
+          fontSize={["md", "xl"]}
+          fontWeight="bold"
+        >
+          {userName || "Your Name Here"}
+        </Text>
+      </Box>
+
+      <Button
+        onClick={handleDownload}
+        mt={6}
+        variant="outline"
+        colorScheme="blue"
+        size="lg"
+        borderRadius="md"
+      >
+        Download Certificate
+      </Button>
+    </Center>
+  );
+};
+
+export default CertificatePage;
