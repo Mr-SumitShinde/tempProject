@@ -37,17 +37,14 @@
   </div>
 </div>
 
-
 top: 85px;
 
-left: 91px;
+✔left: 91px;
 
 width: 273px;
 
-✓ height:
+height: 272px;
 
-272px;
+✓ border: 1px solid;
 
-border: 2px
-
-solid
+border-radius: 14px;
