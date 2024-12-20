@@ -14,11 +14,10 @@ import certificateBg from "./assets/certificate-bg.jpg";
 const CertificatePage = () => {
   const [userName, setUserName] = useState("");
   const [previewPhoto, setPreviewPhoto] = useState(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 }); // Default dimensions
 
-  // Dynamically get the dimensions of the background image
   useEffect(() => {
-    const img = new Image();
+    const img = new window.Image();
     img.src = certificateBg;
     img.onload = () => {
       setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
@@ -66,15 +65,18 @@ const CertificatePage = () => {
 
       <Box
         id="certificate-template"
-        w={`${dimensions.width}px`}
-        h={`${dimensions.height}px`}
+        w={["90vw", `${dimensions.width}px`]} // Responsive width
+        h="auto" // Maintain aspect ratio
+        maxWidth="90vw" // Prevent overflow
+        maxHeight="90vh" // Prevent overflow
         border="2px solid"
         borderColor="gray.300"
         p={4}
         position="relative"
         textAlign="center"
         bgImage={`url(${certificateBg})`}
-        bgSize="cover"
+        bgSize="contain"
+        bgRepeat="no-repeat"
         bgPos="center"
       >
         {previewPhoto && (
@@ -84,9 +86,8 @@ const CertificatePage = () => {
             position="absolute"
             top="20px"
             left="20px"
-            w="80px"
-            h="80px"
-            borderRadius="full"
+            w="100px" // Set width of the image
+            h="150px" // Set height of the image for vertical rectangle
             objectFit="cover"
             border="2px solid"
             borderColor="white"
