@@ -33,3 +33,8 @@
   padding-top: 10px;
   margin-top: 20px;
 }
+
+
+background-color: #f7f9fc; /* Light grayish-blue */
+
+background-color: #e3f2fd; /* Light blue */
