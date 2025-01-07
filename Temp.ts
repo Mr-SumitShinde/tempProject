@@ -1,107 +1,215 @@
-Here’s the documentation for the props in a non-tabular form, formatted for README.md:
+Here’s an FAQ section for the ValpreReactDataTable:
 
 
 ---
 
-Props
+FAQ
 
-Common Props
+1. What is ValpreReactDataTable?
 
-1. renderMode (required):
-Type: 'CSR' | 'SSR'
-Specifies whether the table operates in Client-Side Rendering (CSR) or Server-Side Rendering (SSR) mode.
+ValpreReactDataTable is a reusable, type-safe React table component that supports both Client-Side Rendering (CSR) and Server-Side Rendering (SSR). It provides sorting, pagination, and search functionality while allowing developers to customize column rendering.
 
 
-2. headers (required):
-Type: Header<T>[]
-Defines the structure of the table columns, including their title, alignment, sortability, and rendering behavior.
+---
+
+2. How do I choose between CSR and SSR modes?
+
+Use CSR when:
+
+The dataset is small and can be fully loaded into the client memory.
+
+You want the client to handle filtering, sorting, and pagination.
 
 
-3. showSearch (optional):
-Type: boolean
-Whether to display the search bar. Default is false.
+Use SSR when:
 
+The dataset is large, and loading everything into memory is inefficient.
 
-4. pageSize (optional):
-Type: number
-Number of rows displayed per page. Default is 10.
-
-
-5. defaultSortKey (optional):
-Type: keyof T
-The key of the column to sort by, initially.
-
-
-6. defaultSortDirection (optional):
-Type: 'asc' | 'desc'
-The initial sorting direction. Default is 'asc'.
-
-
-7. onSortChange (optional):
-Type: (key: keyof T, direction: 'asc' | 'desc') => void
-Callback function triggered when a sortable column header is clicked.
+Filtering, sorting, and pagination need to be performed on the server.
 
 
 
 
 ---
 
-CSR-Specific Props
+3. What are the key differences between CSR and SSR props?
 
-1. data (required for CSR):
-Type: T[]
-The dataset to be rendered in the table.
+CSR requires the data prop to provide the entire dataset for the table.
 
+SSR requires the following:
 
+baseUrl: The endpoint for fetching data.
 
+createQueryParams: A function to build query strings based on the table state (pagination, sorting, etc.).
 
----
+extractDataFromResponse: A function to extract the dataset from the server response.
 
-SSR-Specific Props
-
-1. baseUrl (required for SSR):
-Type: string
-The base URL for fetching data from the server.
-
-
-2. createQueryParams (required for SSR):
-Type: (page: number, offset: number, sortKey?: keyof T, sortDirection?: 'asc' | 'desc', searchQuery?: string) => string
-A function to generate query parameters for API requests based on the table state (pagination, sorting, and filtering).
-
-
-3. extractDataFromResponse (required for SSR):
-Type: (response: any) => T[]
-A function to extract table data from the API response.
-
-
-4. extractTotalRecordsFromResponse (required for SSR):
-Type: (response: any) => number
-A function to extract the total record count for pagination from the API response.
-
-
-5. extractTimeFromResponse (optional for SSR):
-Type: (response: any) => string
-A function to extract a timestamp or update time from the API response.
+extractTotalRecordsFromResponse: A function to extract the total record count for pagination.
 
 
 
 
 ---
 
-Header Interface
+4. Can I customize the rendering of specific table columns?
 
-The Header interface defines the structure of a table column.
+Yes, use the render property in the Header definition to specify a custom render function. For example:
 
-export interface Header<T> {
-  title: string; // The display title of the column
-  datakey: keyof T; // The key of the field in the data object
-  alignment?: 'left' | 'center' | 'right'; // Text alignment for the column. Default is 'left'.
-  render?: (item: T) => JSX.Element; // Custom render function for the column
-  sortable?: boolean; // Whether the column is sortable. Default is `false`.
+{
+  title: 'Actions',
+  datakey: 'actions',
+  render: (item) => <button onClick={() => alert(`Edit ${item.name}`)}>Edit</button>,
 }
 
 
 ---
 
-This non-tabular format ensures clarity while listing props and their types with descriptions. Let me know if you need further refinements!
+5. How can I enable sorting for a column?
+
+Set the sortable property to true in the Header definition:
+
+{
+  title: 'Name',
+  datakey: 'name',
+  sortable: true,
+}
+
+
+---
+
+6. How do I specify the default sort column and direction?
+
+Use the defaultSortKey and defaultSortDirection props:
+
+<ValpreReactDataTable
+  defaultSortKey="name"
+  defaultSortDirection="asc"
+/>
+
+
+---
+
+7. How can I integrate the table with an API?
+
+For SSR, you can integrate with your API by providing:
+
+1. baseUrl: The API endpoint.
+
+
+2. createQueryParams: A function to generate query strings for filtering, sorting, and pagination.
+
+
+3. extractDataFromResponse: A function to extract the table data from the API response.
+
+
+4. extractTotalRecordsFromResponse: A function to extract the total record count.
+
+
+
+Example:
+
+<ValpreReactDataTable
+  renderMode="SSR"
+  baseUrl="https://api.example.com/data"
+  createQueryParams={(page, offset, sortKey, sortDirection, searchQuery) =>
+    `page=${page}&offset=${offset}&sortKey=${sortKey}&sortDirection=${sortDirection}&search=${searchQuery}`
+  }
+  extractDataFromResponse={(response) => response.data}
+  extractTotalRecordsFromResponse={(response) => response.totalCount}
+/>
+
+
+---
+
+8. How can I style the table?
+
+You can style the table using CSS or inline styles. For example:
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f4f4f4;
+  cursor: pointer;
+}
+
+
+---
+
+9. Can I paginate the table?
+
+Yes, the table supports pagination. You can control the number of rows per page using the pageSize prop. Pagination is handled differently in CSR and SSR:
+
+CSR: Pagination is managed locally using the data prop.
+
+SSR: Pagination is managed on the server using createQueryParams.
+
+
+
+---
+
+10. What happens if no data is provided in CSR mode?
+
+An error will be thrown, as the data prop is required for CSR mode. Ensure the data prop is provided and properly typed.
+
+
+---
+
+11. Can I disable the search functionality?
+
+Yes, search is disabled by default. To enable it, set the showSearch prop to true:
+
+<ValpreReactDataTable showSearch />
+
+
+---
+
+12. Does it support dynamic row actions?
+
+Yes, you can define dynamic row actions using the render function in the Header. For example:
+
+{
+  title: 'Actions',
+  datakey: 'actions',
+  render: (item) => (
+    <div>
+      <button onClick={() => alert(`Edit ${item.name}`)}>Edit</button>
+      <button onClick={() => alert(`Delete ${item.name}`)}>Delete</button>
+    </div>
+  ),
+}
+
+
+---
+
+13. How do I handle large datasets?
+
+For large datasets, use SSR mode. This ensures only the required data for the current page is fetched from the server, reducing memory usage on the client.
+
+
+---
+
+14. Is it compatible with TypeScript?
+
+Yes, ValpreReactDataTable is fully type-safe and compatible with TypeScript. Use the generic type T to define the shape of your data and enforce type safety for headers and other props.
+
+
+---
+
+15. Can I contribute to the project?
+
+Absolutely! Contributions are welcome. Please open an issue or create a pull request on the GitHub repository.
+
+
+---
+
+Let me know if you need further adjustments to the FAQ!
 
