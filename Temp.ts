@@ -29,3 +29,8 @@ export interface ValpreReactDataTableSSRProps<T> {
   defaultSortDirection?: 'asc' | 'desc';
   onSortChange?: (sortKey: string, sortDirection: 'asc' | 'desc') => void;
 }
+
+
+export type ValpreReactDataTableProps<T> =
+  | ValpreReactDataTableCSRProps<T>
+  | ValpreReactDataTableSSRProps<T>;
