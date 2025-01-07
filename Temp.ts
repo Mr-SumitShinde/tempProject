@@ -50,3 +50,42 @@ export function ValpreReactDataTable<T>({
 
   return <ServerSideDataTable {...rest} />;
 }
+
+import React from 'react';
+import { ValpreReactDataTableProps } from './interfaces';
+
+export function ServerSideDataTable<T>({
+  headers,
+  baseUrl,
+  createQueryParams,
+  pageSize = 10,
+  extractDataFromResponse,
+  extractTotalRecordsFromResponse,
+  extractTimeFromResponse,
+  showSearch,
+  defaultSortKey,
+  defaultSortDirection,
+}: Omit<
+  ValpreReactDataTableProps<T>,
+  'renderMode' | 'data'
+>) {
+  return (
+    <div>
+      <table>
+        <thead>
+          <tr>
+            {headers.map((header, index) => (
+              <th key={index}>{header.title}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {/* Server-side rendering logic will populate rows */}
+          <tr>
+            <td colSpan={headers.length}>Data fetched from server</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
