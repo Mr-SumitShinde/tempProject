@@ -1,28 +1,18 @@
-export interface ValpreReactDataTableProps<T> {
-  renderMode: 'SSR' | 'CSR';
-  headers: Header<T>[];
-  showSearch?: boolean;
-  pageSize?: number;
-  defaultSortKey?: string;
-  defaultSortDirection?: 'asc' | 'desc';
-  onSortChange?: (sortKey: string, sortDirection: 'asc' | 'desc') => void;
-  baseUrl?: string;
-  createQueryParams?: (
-    page: number,
-    offset: number,
-    sortKey?: string,
-    sortDirection?: 'asc' | 'desc',
-    searchQuery?: string
-  ) => string;
-  extractDataFromResponse?: (response: any) => T[];
-  extractTotalRecordsFromResponse?: (response: any) => number;
-  extractTimeFromResponse?: (response: any) => string;
-  data?: T[];
-}
+import React from 'react';
+import { ServerSideDataTable } from './ServerSideDataTable';
+import { ClientSideDataTable } from './ClientSideDataTable';
+import { ValpreReactDataTableProps } from './interfaces';
 
-export interface Header<T> {
-  title: string;
-  dataKey: keyof T;
-  sortable?: boolean;
-  alignment?: 'left' | 'center' | 'right';
+export function ValpreReactDataTable<T>({
+  renderMode,
+  data,
+  ...rest
+}: ValpreReactDataTableProps<T>) {
+  if (renderMode === 'CSR') {
+    if (!data) {
+      throw new Error('Data is required for client-side rendering (CSR).');
+    }
+    return <ClientSideDataTable data={data} {...rest} />;
+  }
+  return <ServerSideDataTable {...rest} />;
 }
