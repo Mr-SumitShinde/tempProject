@@ -1,31 +1,57 @@
-export type ValpreReactDataTableProps<T> =
-  | {
-      renderMode: 'SSR';
-      headers: Header<T>[];
-      baseUrl: string;
-      createQueryParams: (
-        page: number,
-        offset: number,
-        sortKey?: keyof T,
-        sortDirection?: 'asc' | 'desc',
-        searchQuery?: string
-      ) => string;
-      extractDataFromResponse: (response: any) => T[];
-      extractTotalRecordsFromResponse: (response: any) => number;
-      extractTimeFromResponse?: (response: any) => string;
-      showSearch?: boolean;
-      pageSize?: number;
-      defaultSortKey?: keyof T;
-      defaultSortDirection?: 'asc' | 'desc';
-      onSortChange?: (sortKey: keyof T, sortDirection: 'asc' | 'desc') => void;
+export function ValpreReactDataTable<T>(props: ValpreReactDataTableProps<T>) {
+  if (props.renderMode === 'CSR') {
+    const { headers, data, showSearch, pageSize, defaultSortKey, defaultSortDirection, onSortChange } = props;
+
+    return (
+      <ClientSideDataTable
+        headers={headers}
+        data={data}
+        showSearch={showSearch}
+        pageSize={pageSize}
+        defaultSortKey={defaultSortKey}
+        defaultSortDirection={defaultSortDirection}
+        onSortChange={onSortChange}
+      />
+    );
+  }
+
+  if (props.renderMode === 'SSR') {
+    const {
+      headers,
+      baseUrl,
+      createQueryParams = defaultQueryParams, // Provide default implementation
+      extractDataFromResponse,
+      extractTotalRecordsFromResponse,
+      extractTimeFromResponse,
+      showSearch,
+      pageSize,
+      defaultSortKey,
+      defaultSortDirection,
+      onSortChange,
+    } = props;
+
+    if (!baseUrl || !createQueryParams || !extractDataFromResponse || !extractTotalRecordsFromResponse) {
+      throw new Error(
+        'For SSR, "baseUrl", "createQueryParams", "extractDataFromResponse", and "extractTotalRecordsFromResponse" are required.'
+      );
     }
-  | {
-      renderMode: 'CSR';
-      headers: Header<T>[];
-      data: T[];
-      showSearch?: boolean;
-      pageSize?: number;
-      defaultSortKey?: keyof T;
-      defaultSortDirection?: 'asc' | 'desc';
-      onSortChange?: (sortKey: keyof T, sortDirection: 'asc' | 'desc') => void;
-    };
+
+    return (
+      <ServerSideDataTable
+        headers={headers}
+        baseUrl={baseUrl}
+        createQueryParams={createQueryParams}
+        extractDataFromResponse={extractDataFromResponse}
+        extractTotalRecordsFromResponse={extractTotalRecordsFromResponse}
+        extractTimeFromResponse={extractTimeFromResponse}
+        showSearch={showSearch}
+        pageSize={pageSize}
+        defaultSortKey={defaultSortKey}
+        defaultSortDirection={defaultSortDirection}
+        onSortChange={onSortChange}
+      />
+    );
+  }
+
+  return null;
+}
