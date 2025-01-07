@@ -30,3 +30,23 @@ export function ClientSideDataTable<T>({
     </div>
   );
 }
+
+
+import React from 'react';
+import { ServerSideDataTable } from './ServerSideDataTable';
+import { ClientSideDataTable } from './ClientSideDataTable';
+import { ValpreReactDataTableProps } from './interfaces';
+
+export function ValpreReactDataTable<T>({
+  renderMode,
+  ...rest
+}: ValpreReactDataTableProps<T>) {
+  if (renderMode === 'CSR') {
+    if (!rest.data) {
+      throw new Error('Data is required for client-side rendering (CSR).');
+    }
+    return <ClientSideDataTable {...rest} data={rest.data} />;
+  }
+
+  return <ServerSideDataTable {...rest} />;
+}
