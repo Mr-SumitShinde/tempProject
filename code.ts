@@ -1,88 +1,123 @@
-Here's a draft email to share the AMO for your meeting:
+Here’s an example of Minutes and Outcomes from your performance review meeting based on your contributions and areas discussed:
 
 
 ---
 
-Subject: AMO for Our Year-End Performance Review Meeting
+Section: Minutes and Outcomes
 
-Dear [Manager's Name],
+1. Achievements Discussed
 
-Thank you for scheduling the year-end performance review meeting. To ensure a productive discussion, I have outlined the Agenda, Minutes, and Outcomes (AMO) for our meeting:
+Minutes:
 
+Successfully delivered projects like ValpreAPI Library, ValpreReactDataTable, and CLI development, showcasing strong technical skills and the ability to deliver scalable, reusable components.
 
----
+Contributed to optimizing microfrontend applications with Single-SPA, enhancing application performance and reducing build times.
 
-Agenda
+Took initiative in creating dynamic, user-friendly features, such as the Document Preview Feature and People Hierarchy Visualization.
 
-1. Performance Review:
-
-Reflect on key achievements and challenges over the past year.
-
-Discuss strengths and areas for improvement.
+Maintained high-quality standards by writing comprehensive unit tests with Jest, ensuring 90%+ coverage across projects.
 
 
+Outcomes:
 
-2. Feedback:
+Recognized for your ability to independently manage tasks and deliver complex features.
 
-Receive insights on my contributions and overall performance.
-
-
-
-3. Development Goals:
-
-Identify specific skills, responsibilities, and objectives for the upcoming year.
-
-
-
-4. Career Growth Opportunities:
-
-Explore potential growth paths and new responsibilities within the organization.
-
-
-
-5. Feedback from My Side:
-
-Share any suggestions or feedback to enhance team processes or support.
-
+Establish yourself as a go-to person for reusable component development.
 
 
 
 
 ---
 
-Minutes and Outcomes
+2. Feedback
 
-(To be finalized during or after the meeting):
+Minutes:
 
-1. Achievements Discussed: Key contributions and results from the past year.
+Strengths:
 
+Excellent problem-solving and debugging skills, particularly in Nx monorepo projects and microfrontends.
 
-2. Feedback Received: Strengths, improvement areas, and actionable advice.
-
-
-3. Development Goals: Skills and objectives for the next year.
+Strong collaboration with global teams and adherence to project timelines.
 
 
-4. Career Growth: Discussion on future roles or opportunities.
+Improvement Areas:
+
+Need to enhance backend understanding to contribute to end-to-end solutions.
+
+Improve time management when balancing multiple priorities.
 
 
-5. Suggestions Shared: Improvements or ideas from my end.
+
+Outcomes:
+
+Focus on backend skills with a goal to contribute to full-stack solutions.
+
+Schedule periodic reviews to ensure tasks are completed on time.
+
+
+
+
+---
+
+3. Development Goals
+
+Minutes:
+
+Transition into a role where you take ownership of more complex, cross-team projects.
+
+Build expertise in backend technologies to complement your React skills.
+
+Contribute to designing system-wide architectural decisions.
+
+
+Outcomes:
+
+Enroll in a Node.js training program to bridge backend knowledge gaps.
+
+Lead at least one major project or feature delivery in Q2 next year.
 
 
 
 
 ---
 
-I hope this structure helps us stay focused during the meeting and ensures actionable outcomes. Please let me know if there are additional points you’d like to include or if there’s anything else I should prepare in advance.
+4. Career Growth Opportunities
 
-Looking forward to our discussion.
+Minutes:
 
-Best regards,
-[Your Full Name]
-[Your Job Title]
+Discussed potential to move into a Tech Lead role in the next 1-2 years.
+
+Encouraged to explore mentoring opportunities for junior developers within the team.
+
+
+Outcomes:
+
+Work towards technical leadership by taking ownership of larger projects and mentoring team members.
+
+
 
 
 ---
 
-This email is professional, well-structured, and ensures alignment with your manager ahead of the meeting. Let me know if you'd like further refinements!
+5. Suggestions Shared
+
+Minutes:
+
+Suggested improving team collaboration by holding bi-weekly technical sync-ups to discuss challenges and share solutions.
+
+Recommended creating a shared library of reusable components for internal teams.
+
+
+Outcomes:
+
+Implement team sync-ups starting next quarter.
+
+Begin work on a shared component library initiative by Q3.
+
+
+
+
+---
+
+This structure gives you a clear summary of what was discussed and actionable steps for your development. Let me know if you’d like further customization!
 
