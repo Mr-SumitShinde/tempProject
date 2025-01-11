@@ -97,3 +97,15 @@ Incorrect Globals: The globals key must map external dependencies to their globa
 
 If the issue persists, let me know the exact Vite version and error details so I can provide more specific guidance.
 
+{
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@barclays/blueprint-react": "^1.0.0"
+  },
+  "devDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@barclays/blueprint-react": "^1.2.3"
+  }
+}
