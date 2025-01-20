@@ -13,3 +13,6 @@ export default {
   coverageDirectory: './coverage',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'], // Optional: for global test setup
 };
+
+
+nx generate @nx/jest:jest-project clm-ui-fcrm
