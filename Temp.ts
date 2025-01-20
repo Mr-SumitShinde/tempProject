@@ -29,3 +29,5 @@ nx generate @nx/jest:jest-project clm-ui-fcrm
     }
   }
 }
+
+npm install -g nx
