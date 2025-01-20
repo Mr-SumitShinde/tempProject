@@ -16,3 +16,16 @@ export default {
 
 
 nx generate @nx/jest:jest-project clm-ui-fcrm
+
+
+{
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "options": {
+        "jestConfig": "jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}
