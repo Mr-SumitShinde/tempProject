@@ -1,8 +1,23 @@
-console.log("Setup started. This may take 5–10 minutes.");
-setTimeout(() => {
-  console.log("Still working... Thank you for waiting!");
-}, 3 * 60 * 1000);
+// Import the CSS file at the top of your file if it's a global CSS
+import './styles.css'; // Adjust the path to your CSS file
 
-setTimeout(() => {
-  console.log("We're almost done. Just a little longer!");
-}, 7 * 60 * 1000);
+class MyApp {
+  constructor() {
+    // CSS loader can be added here or before registering microapps
+    this.addCSSLoader();
+    this.registerMicroapps();
+  }
+
+  addCSSLoader() {
+    const linkElement = document.createElement('link');
+    linkElement.rel = 'stylesheet';
+    linkElement.href = '/path-to-your-stylesheet.css'; // Replace with your CSS file path
+    document.head.appendChild(linkElement);
+  }
+
+  registerMicroapps() {
+    console.log('Microapps registered');
+  }
+}
+
+new MyApp();
