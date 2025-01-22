@@ -17,27 +17,28 @@ function ValpreAPIRequest(
       };
 
   // Prepare bodyContent
-  const bodyContent =
-    isFormData
-      ? (() => {
-          const formData = new FormData();
-          options.body.forEach((value, key) => {
-            if (typeof value === 'object' && !(value instanceof Blob)) {
-              formData.set(
-                key,
-                new Blob([JSON.stringify(value)], { type: 'application/json' })
-              );
-            } else {
-              formData.set(key, value);
-            }
-          });
-          return formData;
-        })()
-      : isBlob
-      ? options.body
-      : headers['Content-Type'] === 'application/json'
-      ? JSON.stringify(options?.body)
-      : options?.body;
+  const bodyContent = (() => {
+    if (isFormData && options.body instanceof FormData) {
+      const formData = new FormData();
+      options.body.forEach((value, key) => {
+        if (typeof value === 'object' && !(value instanceof Blob)) {
+          formData.set(
+            key,
+            new Blob([JSON.stringify(value)], { type: 'application/json' })
+          );
+        } else {
+          formData.set(key, value);
+        }
+      });
+      return formData;
+    } else if (isBlob) {
+      return options.body;
+    } else if (headers['Content-Type'] === 'application/json') {
+      return JSON.stringify(options?.body);
+    } else {
+      return options?.body;
+    }
+  })();
 
   // Make the request
   return fetch(url, {
