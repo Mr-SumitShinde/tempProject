@@ -19,8 +19,7 @@ function ValpreAPIrequest<T>(
       const bodyContent = (() => {
         if (options?.body instanceof FormData) {
           // Convert JSON objects in FormData to Blob
-          for (const key of options.body.keys()) {
-            const value = options.body.get(key);
+          for (const [key, value] of options.body.entries()) {
             if (typeof value === 'object' && value !== null && !(value instanceof Blob)) {
               const jsonBlob = new Blob([JSON.stringify(value)], { type: 'application/json' });
               options.body.set(key, jsonBlob);
