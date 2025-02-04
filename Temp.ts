@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig({
-  plugins: [react(), dts()],
+  plugins: [
+    react({ jsxRuntime: 'classic' }), // Use Classic JSX runtime
+    dts(),
+  ],
   build: {
     lib: {
       entry: 'src/index.ts',
@@ -11,7 +14,7 @@ export default defineConfig({
       fileName: (format) => `your-library.${format}.js`,
     },
     rollupOptions: {
-      external: [], // Ensure React is bundled
+      external: [], // Ensures React is included in the bundle
       output: {
         globals: {
           react: 'React',
@@ -21,6 +24,6 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'], // Ensure React is bundled
+    include: ['react', 'react-dom'], // Ensures React is bundled inside the package
   },
 });
