@@ -1,12 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import dts from 'vite-plugin-dts';
+import path from 'path';
 
 export default defineConfig({
-  plugins: [
-    react({ jsxRuntime: 'classic' }), // Use Classic JSX runtime
-    dts(),
-  ],
+  plugins: [react({ jsxRuntime: 'classic' }), dts()],
+  resolve: {
+    alias: {
+      react: path.resolve('./node_modules/react'),
+      'react-dom': path.resolve('./node_modules/react-dom'),
+    },
+  },
   build: {
     lib: {
       entry: 'src/index.ts',
@@ -14,16 +18,7 @@ export default defineConfig({
       fileName: (format) => `your-library.${format}.js`,
     },
     rollupOptions: {
-      external: [], // Ensures React is included in the bundle
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-        },
-      },
+      external: [], // React is bundled, but ensure a single instance
     },
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom'], // Ensures React is bundled inside the package
   },
 });
