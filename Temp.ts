@@ -1,204 +1,271 @@
-Here’s a structured Show & Tell Document for Valpre Components that you can use for presentations, internal team discussions, or documentation purposes.
+Here's a comprehensive Show & Tell document covering all the requested topics. It is structured for presentations, internal discussions, and documentation purposes.
 
 
 ---
 
-Show & Tell: Valpre Components
+Show & Tell: Valpre Framework & Components
 
 Author: [Your Name]
 Date: [Today's Date]
 Audience: UI Developers, Architects, Product Owners, and Stakeholders
-Purpose: To showcase the features, architecture, usage, and benefits of the Valpre Components library.
+Purpose: To provide an overview of Valpre’s ecosystem, including CLI, API services, UI components, UI utilities, and microfrontend development.
 
 
 ---
 
 1. Introduction
 
-Valpre Components is a reusable, modular UI library built on top of React.js for enterprise applications at Barclays. It provides a set of pre-built UI components optimized for consistency, accessibility, and maintainability across multiple banking platforms.
+The Valpre Framework is an in-house, end-to-end solution designed to accelerate frontend development at Barclays. It includes a CLI, API service, UI components, UI utilities, and microfrontend support to streamline enterprise web application development.
 
 Key Highlights:
 
-🚀 Reusable UI components to accelerate development.
+🔥 Developer Productivity: Automate setup and coding best practices.
 
-🎨 Consistent Design aligned with Barclays' design system.
+⚡ Optimized UI & API Services: Reusable components & efficient data fetching.
 
-⚡ Optimized Performance for SSR and CSR.
-
-✅ Compliant with accessibility (WCAG) and security standards.
+🏗 Microfrontend Architecture: Modular, scalable, and independently deployable.
 
 
 
 ---
 
-2. Component Architecture
+2. Dynamic Rendering
 
-High-Level Overview
+What is Dynamic Rendering?
 
-Each component follows a modular structure with the following key principles:
+Dynamic rendering in Valpre allows for conditionally rendering UI elements based on runtime data and user interactions. It is primarily used in:
 
-Encapsulation: Each component has its own styles and logic.
+🏆 Dynamic Forms: Generate UI based on JSON schema.
 
-Modularity: Independent and interchangeable UI components.
+🔍 Server-Side Rendering (SSR) vs. Client-Side Rendering (CSR).
 
-Theming Support: Customization via SCSS or CSS-in-JS.
-
-Type Safety: Built using TypeScript for better developer experience.
+📊 Real-time UI Updates: Based on API responses.
 
 
-📂 valpre-components/
- ┣ 📂 src/
- ┃ ┣ 📂 Button/
- ┃ ┃ ┣ 📜 Button.tsx
- ┃ ┃ ┣ 📜 Button.module.scss
- ┃ ┃ ┣ 📜 Button.test.tsx
- ┃ ┃ ┗ 📜 index.ts
- ┃ ┣ 📂 DataTable/
- ┃ ┃ ┣ 📜 DataTable.tsx
- ┃ ┃ ┣ 📜 DataTable.module.scss
- ┃ ┃ ┣ 📜 DataTable.test.tsx
- ┃ ┃ ┗ 📜 index.ts
- ┃ ┗ 📂 utils/
- ┣ 📜 package.json
- ┣ 📜 tsconfig.json
- ┗ 📜 README.md
+Implementation Example:
 
-Core Technologies:
+import { DynamicForm } from "@barclays/valpre-components";
 
-React.js (Functional Components & Hooks)
+const formSchema = [
+  { type: "text", label: "Full Name", name: "fullName" },
+  { type: "radio", label: "Gender", name: "gender", options: ["Male", "Female"] }
+];
 
-TypeScript
-
-SCSS (CSS Modules)
-
-Jest (Unit Testing)
-
-ESLint & Prettier (Code Quality)
-
+<DynamicForm schema={formSchema} />;
 
 
 ---
 
-3. Core Components & Usage
+3. Valpre CLI
 
-1️⃣ ValpreButton
+What is Valpre CLI?
 
-A standard button component with customizable styles and event handling.
+Valpre CLI is a command-line interface tool that helps developers bootstrap and manage Valpre-based projects efficiently.
 
-Props:
+Key Features:
 
-Usage:
+🚀 Project Initialization: npx create-valpre-app
 
-import { ValpreButton } from "@barclays/valpre-components";
+📦 Component & Service Generators: valpre generate component Button
 
-<ValpreButton variant="primary" size="medium" onClick={() => alert("Clicked!")}>
-  Click Me
-</ValpreButton>
+✅ Linting & Testing Commands: valpre lint, valpre test
+
+📊 Microfrontend Registration: valpre register-mfe app-name
+
+
+Usage Example:
+
+npx create-valpre-app my-app --template=react
+cd my-app
+valpre generate component DataTable
 
 
 ---
 
-2️⃣ ValpreDataTable
+4. Valpre API Service
 
-A fully customizable data table component optimized for server-side rendering (SSR).
+Overview
 
-Props:
+Valpre API Service is a fetch-based service built to handle HTTP requests in Node.js and browser environments.
 
-Usage:
+Key Features:
+
+✅ Interceptor Support (for authentication, logging, and caching).
+
+🌍 Unified API Client (common API fetch patterns).
+
+🔄 Retry & Error Handling.
+
+📡 Supports REST & GraphQL APIs.
+
+
+Example:
+
+import { valpreApi } from "@barclays/valpre-api-service";
+
+const fetchData = async () => {
+  const response = await valpreApi.get("/users");
+  console.log(response.data);
+};
+
+
+---
+
+5. Valpre UI Components
+
+a) DataTable (CSR & SSR)
+
+Valpre DataTable is a high-performance data grid component optimized for both Client-Side Rendering (CSR) and Server-Side Rendering (SSR).
+
+Key Features:
+
+🔄 CSR Mode: Handles sorting, filtering, and pagination on the client.
+
+🌍 SSR Mode: Works with server-side APIs for large datasets.
+
+🎨 Theming & Customization: Supports CSS Modules.
+
+
+Example for CSR Mode:
 
 import { ValpreDataTable } from "@barclays/valpre-components";
 
-const columns = [
-  { header: "Name", accessor: "name" },
-  { header: "Email", accessor: "email" }
+const data = [
+  { name: "John Doe", age: 30 },
+  { name: "Jane Doe", age: 28 }
 ];
 
-const data = [
-  { name: "John Doe", email: "john@example.com" },
-  { name: "Jane Smith", email: "jane@example.com" }
+const columns = [
+  { header: "Name", accessor: "name" },
+  { header: "Age", accessor: "age" }
 ];
 
 <ValpreDataTable columns={columns} data={data} />;
 
+Example for SSR Mode:
 
----
-
-4. Theming & Customization
-
-Supports SCSS-based theming.
-
-Developers can override styles using CSS Modules.
-
-Example of custom button styles:
-
-.valpre-button.custom {
-  background-color: #007bff;
-  color: #fff;
-  border-radius: 5px;
-}
-
+<ValpreDataTable
+  fetchData={(params) => fetch(`/api/users?page=${params.page}`)}
+  columns={columns}
+/>
 
 
 ---
 
-5. Testing & Code Quality
+6. Valpre UI Utils
 
-Uses Jest for unit testing.
+What is Valpre UI Utils?
 
-Sample test case:
+A collection of helper functions that simplify UI logic, including:
 
-import { render, screen } from "@testing-library/react";
-import { ValpreButton } from "@barclays/valpre-components";
+🖼 Date Formatting
 
-test("renders button with correct text", () => {
-  render(<ValpreButton>Click Me</ValpreButton>);
-  expect(screen.getByText("Click Me")).toBeInTheDocument();
+📏 Number Formatting
+
+🔄 Debouncing & Throttling
+
+🔍 Deep Merging Objects
+
+
+Example:
+
+import { formatDate } from "@barclays/valpre-utils";
+
+console.log(formatDate("2024-02-12", "DD-MM-YYYY")); // Output: 12-02-2024
+
+
+---
+
+7. Developing Microfrontends with Valpre
+
+Why Microfrontends?
+
+Microfrontends enable independent development and deployment of UI applications. Valpre supports Single-SPA and Module Federation.
+
+Steps to Create a Microfrontend in Valpre
+
+1️⃣ Generate a Microfrontend
+
+valpre generate mfe dashboard
+
+2️⃣ Register in App Shell
+
+registerApplication({
+  name: "dashboard",
+  app: () => import("@barclays/dashboard"),
+  activeWhen: ["/dashboard"],
 });
 
+3️⃣ Consume the Microfrontend
+
+<Microfrontend name="dashboard" />
 
 
 ---
 
-6. CI/CD & Deployment
+8. CI/CD & Deployment
 
-Automated Builds: Uses Nx for monorepo management.
+Automated Pipeline:
 
-Versioning: Managed with semantic-release.
+✅ Linting & Formatting (ESLint, Prettier)
+✅ Unit Testing (Jest)
+✅ Build & Package Release (Nx, Webpack, Semantic Release)
+✅ Docker Deployment (for microfrontends)
 
-Linting & Formatting: Enforced via ESLint and Prettier.
+Release Workflow
 
+1️⃣ Commit Code
+2️⃣ Run CI Pipeline (Lint, Test, Build, Release)
+3️⃣ Publish Package to Internal Registry
+4️⃣ Deploy to Cloud
+
+Example GitHub Actions Workflow:
+
+name: CI/CD Pipeline
+on: push
+jobs:
+  build:
+    steps:
+      - name: Install Dependencies
+        run: npm install
+      - name: Run Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Deploy
+        run: npm run deploy
 
 
 ---
 
-7. Roadmap & Future Enhancements
+9. Roadmap & Future Enhancements
 
 ✅ Completed Features:
 
-Core UI components (Button, DataTable, Modals).
+Valpre CLI for faster project setup.
 
-Theming and styling customization.
+Valpre API service with interceptors.
 
-Unit testing setup.
+DataTable optimized for CSR & SSR.
+
+UI Utils for common functions.
 
 
 🚀 Upcoming Features:
 
-Dark mode support.
+GraphQL Support in Valpre API.
 
-Accessibility improvements.
+Dark Mode & Custom Themes for UI Components.
 
-Performance optimizations for SSR.
-
-More UI components (Toasts, Select, Multi-step Forms).
+Valpre Design System for standardized UI.
 
 
 
 ---
 
-8. Conclusion
+10. Conclusion
 
-Valpre Components is a scalable, reusable, and efficient UI library designed to enhance the development experience at Barclays. It ensures consistency, performance, and maintainability, helping teams build enterprise applications faster.
+The Valpre Framework provides an enterprise-ready, scalable frontend ecosystem for React applications. With automated tools, optimized components, and microfrontend support, developers can build, test, and deploy applications faster and more efficiently.
 
 
 ---
@@ -209,11 +276,11 @@ Git Repository: [Insert Link]
 
 Documentation: [Insert Link]
 
-Design System: [Insert Link]
+Internal Slack Channel: [Insert Link]
 
 
 
 ---
 
-Let me know if you need any refinements or additional sections.
+Let me know if you want any modifications or additional sections.
 
