@@ -267,3 +267,206 @@ By structuring Valpre’s Confluence documentation in this modular and categoriz
 
 Let me know if you want modifications to the structure or content breakdown! 🚀
 
+
+📌 Overview of Valpre Framework & Common Components
+
+🔍 What is Valpre?
+
+The Valpre Framework is an enterprise-grade frontend framework designed to accelerate, standardize, and optimize UI development at Barclays. It provides modular UI components, an API service layer, CLI tools, utilities, and microfrontend support, ensuring a consistent, scalable, and efficient development experience across multiple banking platforms.
+
+
+---
+
+🎯 Purpose & Objectives
+
+Why was Valpre Created?
+
+Developing enterprise UI applications at scale requires consistency, performance, and maintainability. Valpre solves these challenges by providing: ✅ Pre-built UI components to standardize design and behavior.
+✅ API service layer to manage fetch requests with error handling.
+✅ CLI tool to automate project setup and improve productivity.
+✅ Microfrontend support for scalable, independent deployments.
+✅ Strict coding standards & best practices to ensure compliance with Barclays’ development policies.
+
+Key Objectives
+
+Enhance Developer Productivity: Reduce development effort with reusable components.
+
+Improve Code Consistency: Standardized design, theming, and state management.
+
+Optimize Performance: Support for SSR (Server-Side Rendering) & CSR (Client-Side Rendering).
+
+Facilitate Microfrontends: Allow independent feature teams to build and deploy micro-apps.
+
+Ensure Compliance: Accessibility (WCAG), Security, and Coding Standards.
+
+
+
+---
+
+🚀 Core Features & Components
+
+1️⃣ Valpre CLI – Command Line Interface
+
+A powerful CLI tool to automate project setup and generate components/services.
+
+✅ Initialize a Valpre-based project:
+
+npx create-valpre-app my-app
+
+✅ Generate components/services dynamically:
+
+valpre generate component Button
+
+✅ Register microfrontends in the app shell:
+
+valpre register-mfe dashboard
+
+
+---
+
+2️⃣ Valpre API Service – Unified API Fetch Layer
+
+A fetch-based API service that provides a common data-fetching layer with:
+✅ Interceptors for authentication & logging.
+✅ Retry logic & error handling.
+✅ Supports REST & GraphQL APIs.
+✅ Works in both Node.js & Browser environments.
+
+Example Usage:
+
+import { valpreApi } from "@barclays/valpre-api-service";
+
+const fetchData = async () => {
+  const response = await valpreApi.get("/users");
+  console.log(response.data);
+};
+
+
+---
+
+3️⃣ Valpre UI Components – Pre-Built Reusable UI Components
+
+A set of enterprise-ready, reusable UI components to maintain consistency across applications.
+
+✅ CSR Mode (Client-Side Rendering) Example for DataTable:
+
+<ValpreDataTable columns={columns} data={data} />
+
+✅ SSR Mode (Server-Side Rendering) Example:
+
+<ValpreDataTable fetchData={(params) => fetch(`/api/users?page=${params.page}`)} />
+
+
+---
+
+4️⃣ Valpre UI Utils – Utility Functions
+
+A collection of helper functions to simplify UI development.
+✅ Formatting Helpers (Dates, Numbers, Currency).
+✅ Event Handlers (Debounce, Throttle).
+✅ Object Manipulation (Deep Merge).
+
+Example:
+
+import { formatDate } from "@barclays/valpre-utils";
+console.log(formatDate("2025-02-12", "DD-MM-YYYY")); // Output: 12-02-2025
+
+
+---
+
+5️⃣ Microfrontend Support – Scalable UI Development
+
+Valpre enables modular & independent development using Microfrontend Architecture.
+
+✅ Each microfrontend runs independently.
+✅ Independent deployment & scaling.
+✅ Seamless integration into App Shell.
+
+Registering a Microfrontend in Valpre:
+
+registerApplication({
+  name: "dashboard",
+  app: () => import("@barclays/dashboard"),
+  activeWhen: ["/dashboard"],
+});
+
+
+---
+
+📊 CI/CD & Deployment Strategy
+
+Valpre ensures a smooth CI/CD workflow with: ✅ Automated Testing (Jest)
+✅ Linting & Formatting (ESLint, Prettier)
+✅ Versioning & Changelog (semantic-release)
+✅ Dockerized Deployment for Microfrontends
+
+CI/CD Pipeline Example (GitHub Actions)
+
+name: CI/CD Pipeline
+on: push
+jobs:
+  build:
+    steps:
+      - name: Install Dependencies
+        run: npm install
+      - name: Run Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Deploy
+        run: npm run deploy
+
+
+---
+
+📜 Versioning & Changelog Management
+
+A version-tracking system ensures all Valpre components are up to date.
+
+🔗 Changelog Link: View Full Release Notes
+
+
+---
+
+📌 Key Benefits of Using Valpre
+
+✅ 🚀 Faster Development: Reusable components, CLI automation, and API abstraction.
+✅ 🎨 Consistency: Standardized UI/UX across all Barclays applications.
+✅ 📈 Scalability: Microfrontend support for independent feature development.
+✅ ⚡ Performance: Optimized for both CSR & SSR, ensuring seamless user experience.
+✅ 🛡 Security & Compliance: Built-in accessibility, security best practices, and compliance checks.
+
+
+---
+
+📝 Next Steps
+
+1️⃣ Start using Valpre CLI to create a new project.
+2️⃣ Explore Valpre API service and integrate it into your application.
+3️⃣ Use Valpre UI Components to build feature-rich UIs.
+4️⃣ Adopt Microfrontend Architecture for scalable development.
+5️⃣ Follow CI/CD best practices to streamline deployments.
+
+📌 For More Documentation & Guides: Confluence Link
+
+
+---
+
+🔗 Useful Links
+
+📖 Valpre Framework Documentation: Link
+
+📌 Git Repository: Link
+
+🎨 Design System & UI Guidelines: Link
+
+🛠 CLI Commands & Reference: Link
+
+
+
+---
+
+This overview provides a comprehensive introduction to Valpre, covering its purpose, architecture, features, and implementation details. Let me know if you need further refinements! 🚀
+
+
+
