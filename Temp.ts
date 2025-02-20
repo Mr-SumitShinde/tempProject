@@ -1,74 +1,97 @@
-const tar = require('tar');
-const fs = require('fs-extra');
-const path = require('path');
-const readlineSync = require('readline-sync');
+import ValpreAPIrequest from '../path/to/ValpreAPIrequest'; // Adjust path accordingly
 
-// TAR file and output folder
-const tarFileName = 'valpre-ui-example.tar'; // Replace with actual file name
-const outputFolder = './'; // Extract in the current directory
-const oldName = 'exampleAppName'; // Placeholder text
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ success: true }),
+  })
+) as jest.Mock;
 
-// Extract tar file
-async function extractTar() {
-    try {
-        await tar.x({
-            file: tarFileName, // Extract from this file
-            C: outputFolder // Extract to this folder
-        });
-        console.log(`Extracted successfully to ${outputFolder}`);
-    } catch (error) {
-        console.error('Error extracting file:', error);
-    }
-}
+describe('ValpreAPIrequest', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
-// Function to recursively rename files and replace content
-async function replaceExampleAppName(dir, oldName, newName) {
-    try {
-        const files = await fs.readdir(dir); // Ensure async read
-        
-        for (const file of files) {
-            const oldFilePath = path.join(dir, file);
-            let newFilePath = path.join(dir, file.replace(oldName, newName));
+  test('should make a GET request with correct parameters', async () => {
+    await ValpreAPIrequest('GET', 'https://example.com');
 
-            // Rename file if needed
-            if (file.includes(oldName)) {
-                await fs.rename(oldFilePath, newFilePath);
-                console.log(`Renamed: ${oldFilePath} → ${newFilePath}`);
-            } else {
-                newFilePath = oldFilePath;
-            }
+    expect(global.fetch).toHaveBeenCalledWith('https://example.com', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: undefined,
+    });
+  });
 
-            const stats = await fs.stat(newFilePath);
+  test('should include body in POST request', async () => {
+    const body = { key: 'value' };
+    await ValpreAPIrequest('POST', 'https://example.com', {
+      body,
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-            if (stats.isDirectory()) {
-                await replaceExampleAppName(newFilePath, oldName, newName);
-            } else {
-                // Read file content
-                let content = await fs.readFile(newFilePath, 'utf8');
+    expect(global.fetch).toHaveBeenCalledWith('https://example.com', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  });
 
-                if (content.includes(oldName)) {
-                    content = content.replace(new RegExp(oldName, 'g'), newName);
-                    await fs.writeFile(newFilePath, content, 'utf8');
-                    console.log(`Updated content in: ${newFilePath}`);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error replacing text:', error);
-    }
-}
+  test('should include body in FormData for POST request', async () => {
+    const formData = new FormData();
+    formData.append('key', 'value');
 
-// Main function
-async function main() {
-    const newName = readlineSync.question('Enter the new name: ');
+    await ValpreAPIrequest('POST', 'https://example.com', {
+      body: formData,
+      headers: {},
+    });
 
-    // Step 1: Extract the tar file
-    await extractTar();
+    expect(global.fetch).toHaveBeenCalledWith('https://example.com', {
+      method: 'POST',
+      headers: {},
+      body: formData,
+    });
+  });
 
-    // Step 2: Replace file names and content
-    await replaceExampleAppName(outputFolder, oldName, newName);
+  test('should include body in Blob for PUT request', async () => {
+    const blob = new Blob(['test content'], { type: 'text/plain' });
 
-    console.log('Replacement process completed.');
-}
+    await ValpreAPIrequest('PUT', 'https://example.com', {
+      body: blob,
+      headers: { 'Content-Type': 'text/plain' },
+    });
 
-main();
+    expect(global.fetch).toHaveBeenCalledWith('https://example.com', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/plain' },
+      body: blob,
+    });
+  });
+
+  test('should handle DELETE request without body', async () => {
+    await ValpreAPIrequest('DELETE', 'https://example.com');
+
+    expect(global.fetch).toHaveBeenCalledWith('https://example.com', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: undefined,
+    });
+  });
+
+  test('should correctly process FormData', async () => {
+    const formData = new FormData();
+    formData.append('key', JSON.stringify({ name: 'test' }));
+
+    await ValpreAPIrequest('POST', 'https://example.com', {
+      body: formData,
+    });
+
+    expect(global.fetch).toHaveBeenCalled();
+  });
+
+  test('should handle API response correctly', async () => {
+    const response = await ValpreAPIrequest('GET', 'https://example.com');
+    const json = await response.json();
+
+    expect(json).toEqual({ success: true });
+  });
+});
