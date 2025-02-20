@@ -1,60 +1,17 @@
-import { useEffect } from "react";
+const tar = require('tar');
 
-const LeftNavApp = () => {
-  useEffect(() => {
-    const updateState = (mounted: boolean) => {
-      window.leftNavMountedState = mounted;
-      window.dispatchEvent(new CustomEvent("leftnav-mounted", { detail: mounted }));
-    };
+// Name of your tar file (must be in the same folder as index.js)
+const tarFileName = 'file.tar'; // Replace with your actual file name
+const outputFolder = './extracted'; // Output folder
 
-    updateState(true);
-
-    return () => {
-      updateState(false);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (window.leftNavMountedState === undefined) {
-      window.leftNavMountedState = false;
-    }
-    window.dispatchEvent(new CustomEvent("leftnav-mounted", { detail: window.leftNavMountedState }));
-  }, []);
-
-  return <nav>Left Navigation Menu</nav>;
-};
-
-export default LeftNavApp;
+tar.x({
+    file: tarFileName, // Extract from this file
+    C: outputFolder,   // Extract to this folder
+}).then(() => {
+    console.log(`Extracted successfully to ${outputFolder}`);
+}).catch(error => {
+    console.error('Error extracting file:', error);
+});
 
 
-import { useEffect, useState } from "react";
-
-const Header = () => {
-  const getStoredLeftNavState = () => {
-    return window.leftNavMountedState ?? false;
-  };
-
-  const [isLeftNavMounted, setIsLeftNavMounted] = useState(getStoredLeftNavState());
-
-  useEffect(() => {
-    const handleLeftNavMountEvent = (event: any) => {
-      window.leftNavMountedState = event.detail;
-      setIsLeftNavMounted(event.detail);
-    };
-
-    window.addEventListener("leftnav-mounted", handleLeftNavMountEvent);
-
-    return () => {
-      window.removeEventListener("leftnav-mounted", handleLeftNavMountEvent);
-    };
-  }, []);
-
-  return (
-    <header>
-      <h1>My Application</h1>
-      {!isLeftNavMounted && <button id="logout-button">Logout</button>}
-    </header>
-  );
-};
-
-export default Header;
+npm install tar
