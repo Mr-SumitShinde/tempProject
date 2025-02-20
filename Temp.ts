@@ -3,18 +3,21 @@ const fs = require('fs-extra');
 const path = require('path');
 const readline = require('readline');
 
-// Function to extract a tar.gz file
-async function extractTar(tarFile, outputFolder) {
-    try {
-        await tar.x({
-            file: tarFile,
-            cwd: outputFolder,
-            strip: 1 // Remove top-level folder if needed
-        });
-        console.log(`Extracted ${tarFile} to ${outputFolder}`);
-    } catch (error) {
-        console.error('Error extracting tar file:', error);
-    }
+// TAR file and output folder
+const tarFileName = 'valpre-ui-example.tar'; // Replace with actual file name
+const outputFolder = './'; // Extract in the current directory
+const oldName = 'exampleAppName'; // Placeholder text
+
+// Extract tar file
+function extractTar() {
+    return tar.x({
+        file: tarFileName, // Extract from this file
+        C: outputFolder // Extract to this folder
+    }).then(() => {
+        console.log(`Extracted successfully to ${outputFolder}`);
+    }).catch(error => {
+        console.error('Error extracting file:', error);
+    });
 }
 
 // Function to recursively rename files and replace content
@@ -55,11 +58,6 @@ async function replaceExampleAppName(dir, oldName, newName) {
 
 // Main function
 async function main() {
-    const tarFileName = 'file.tar.gz'; // Your TAR file name
-    const outputFolder = './unzipped'; // Extraction folder
-    const oldName = 'exampleAppName'; // The placeholder text to be replaced
-
-    // Get user input for the new name
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
@@ -69,7 +67,7 @@ async function main() {
         rl.close();
 
         // Step 1: Extract the tar file
-        await extractTar(tarFileName, outputFolder);
+        await extractTar();
 
         // Step 2: Replace file names and content
         await replaceExampleAppName(outputFolder, oldName, newName);
